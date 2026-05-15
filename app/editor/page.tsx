@@ -12,6 +12,11 @@ import {
   setIsProStored,
 } from "@/lib/free-downloads";
 import { addSavedImage } from "@/lib/saved-images";
+import {
+  clearScreenshot,
+  loadScreenshot,
+  saveScreenshot,
+} from "@/lib/screenshot-store";
 import { buildCheckoutUrl } from "@/lib/checkout";
 import { useNotify } from "@/components/notify";
 
@@ -219,8 +224,6 @@ const SCALES: { id: string; label: string; size: string; hint: string }[] = [
   { id: "2x", label: "2×", size: "Free", hint: "Retina — double the pixel density, ideal for Twitter/X and LinkedIn" },
   { id: "4x", label: "4×", size: "Pro", hint: "Ultra — 4× density, for print, case studies, or large displays" },
 ];
-const STORAGE_KEY = "postabl:screenshot";
-
 const presetClasses =
   "relative aspect-square cursor-pointer overflow-hidden rounded-lg border-2 border-transparent transition-all hover:scale-105";
 
@@ -274,14 +277,21 @@ function EditorContent() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
 
-  // Load saved screenshot from localStorage after mount (avoids SSR mismatch).
+  // Load saved screenshot from IndexedDB after mount (avoids SSR mismatch).
+  // Transparently migrates any older localStorage-backed value on first read.
   useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem(STORAGE_KEY);
-      if (saved) setScreenshot(saved);
-    } catch {
-      // localStorage blocked — silently continue without a saved image.
-    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const saved = await loadScreenshot();
+        if (!cancelled && saved) setScreenshot(saved);
+      } catch {
+        // IDB blocked (private mode etc) — silently continue.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Hydrate today's download count from localStorage, and (dev only)
@@ -489,15 +499,19 @@ function EditorContent() {
       const dataUrl = typeof reader.result === "string" ? reader.result : null;
       if (!dataUrl) return;
       setScreenshot(dataUrl);
-      try {
-        window.localStorage.setItem(STORAGE_KEY, dataUrl);
-      } catch {
-        // Quota exceeded or blocked — image stays in memory for this session.
+      // Persist asynchronously to IndexedDB (50MB+ of headroom vs
+      // localStorage's 5-10MB). If it still fails — incredibly large
+      // image, IDB blocked, or genuine quota issue — the image stays
+      // in memory for this session.
+      void saveScreenshot(dataUrl).catch((err) => {
+        console.error(err);
         notify.toast(
-          "Couldn't cache the screenshot locally. It'll stay loaded for this session only.",
+          err instanceof Error
+            ? err.message
+            : "Couldn't save the screenshot. It'll stay loaded for this session only.",
           { tone: "error", duration: 5000 }
         );
-      }
+      });
     };
     reader.readAsDataURL(file);
     // Reset so picking the same file twice still triggers onChange.
@@ -506,11 +520,9 @@ function EditorContent() {
 
   function handleClearScreenshot() {
     setScreenshot(null);
-    try {
-      window.localStorage.removeItem(STORAGE_KEY);
-    } catch {
-      // ignore
-    }
+    void clearScreenshot().catch(() => {
+      // ignore — local state is already cleared
+    });
   }
 
   async function handleDownload() {
