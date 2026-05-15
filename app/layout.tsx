@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { NotifyProvider } from "@/components/notify";
 
 // metadataBase makes file-convention images (app/icon.tsx,
 // app/opengraph-image.tsx, app/twitter-image.tsx) resolve to absolute
@@ -76,7 +77,7 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased" suppressHydrationWarning>
-        {children}
+        <NotifyProvider>{children}</NotifyProvider>
       </body>
     </html>
   );

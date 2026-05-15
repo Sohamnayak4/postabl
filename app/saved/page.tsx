@@ -20,6 +20,7 @@ import {
   deleteSavedImage,
   listSavedImages,
 } from "@/lib/saved-images";
+import { useNotify } from "@/components/notify";
 
 type MeUser =
   | {
@@ -61,6 +62,7 @@ export default function SavedPage() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
+  const notify = useNotify();
 
   // Hydrate from IndexedDB. We mirror the editor's pattern: render an
   // empty/skeleton state on the server, then load real data after mount
@@ -163,8 +165,9 @@ export default function SavedPage() {
 
   function handleDownload(img: SavedImage) {
     if (outOfFreeDownloads) {
-      alert(
-        `You've used all ${DAILY_FREE_LIMIT} free downloads for today. Upgrade to Pro for unlimited exports.`
+      notify.toast(
+        `Daily limit reached (${DAILY_FREE_LIMIT}). Upgrade to Pro for unlimited exports.`,
+        { tone: "error", duration: 5000 }
       );
       return;
     }
@@ -186,19 +189,24 @@ export default function SavedPage() {
   }
 
   async function handleDelete(id: string) {
-    const ok = window.confirm(
-      "Remove this saved image? This can't be undone."
-    );
+    const ok = await notify.confirm({
+      title: "Remove this saved image?",
+      description: "This can't be undone.",
+      confirmLabel: "Remove",
+      destructive: true,
+    });
     if (!ok) return;
     try {
       await deleteSavedImage(id);
       setImages((prev) => prev.filter((img) => img.id !== id));
+      notify.toast("Removed.", { tone: "success", duration: 2000 });
     } catch (err) {
       console.error(err);
-      alert(
+      notify.toast(
         err instanceof Error
           ? err.message
-          : "Couldn't remove that image. Try again."
+          : "Couldn't remove that image. Try again.",
+        { tone: "error" }
       );
     }
   }

@@ -13,6 +13,7 @@ import {
 } from "@/lib/free-downloads";
 import { addSavedImage } from "@/lib/saved-images";
 import { buildCheckoutUrl } from "@/lib/checkout";
+import { useNotify } from "@/components/notify";
 
 type MeUser =
   | {
@@ -265,10 +266,10 @@ function EditorContent() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [downloadsUsed, setDownloadsUsed] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
-  const [saveToast, setSaveToast] = useState<string | null>(null);
 
   const router = useRouter();
   const searchParams = useSearchParams();
+  const notify = useNotify();
   const frameRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
@@ -365,13 +366,30 @@ function EditorContent() {
     }
     const url = buildCheckoutUrl({ id: me.id, email: me.email });
     if (!url) {
-      alert(
-        "Checkout is currently unavailable. Please try again in a moment."
+      notify.toast(
+        "Checkout is currently unavailable. Please try again in a moment.",
+        { tone: "error" }
       );
       return;
     }
     // Full-page nav — let LS's hosted checkout own the tab.
     window.location.href = url;
+  }
+
+  // Confirm-before-redirect for clicks on Pro-gated features. The
+  // direct "Upgrade to Pro" buttons skip this (they're already an
+  // explicit purchase intent) — this only fires when the user clicks
+  // something that *looks* like a feature toggle (4× scale, a Pattern
+  // swatch) so they know they're about to be sent to checkout.
+  async function confirmAndUpgrade(feature: string) {
+    const ok = await notify.confirm({
+      title: `${feature} is a Pro feature`,
+      description:
+        "Postabl Pro unlocks unlimited daily exports, 4× retina output, and pattern backgrounds for $9.99 a year. Cancel anytime.",
+      confirmLabel: "Continue to checkout →",
+      cancelLabel: "Maybe later",
+    });
+    if (ok) handleUpgradeClick();
   }
 
   // ?upgraded=1 lands here when LS finishes a successful checkout. We
@@ -385,7 +403,12 @@ function EditorContent() {
     // Strip the query immediately so refresh doesn't re-trigger this.
     router.replace("/editor");
 
-    setSaveToast("Welcome to Pro — finishing up your account…");
+    // Long-running "we're working on it" toast — held open until the
+    // poll resolves one way or the other.
+    const dismissUpgrade = notify.toast(
+      "Welcome to Pro — finishing up your account…",
+      { duration: Infinity }
+    );
 
     let cancelled = false;
     let attempts = 0;
@@ -400,8 +423,11 @@ function EditorContent() {
         if (cancelled) return;
         if (data?.user?.isPro) {
           setMe(data.user);
-          setSaveToast("You're on Pro now. Have at it.");
-          setTimeout(() => setSaveToast(null), 3500);
+          dismissUpgrade();
+          notify.toast("You're on Pro now. Have at it.", {
+            tone: "success",
+            duration: 3500,
+          });
           return;
         }
       } catch {
@@ -410,10 +436,11 @@ function EditorContent() {
       if (attempts < maxAttempts) {
         setTimeout(poll, 1500);
       } else {
-        setSaveToast(
-          "Payment received. Pro will be live in a few seconds — refresh if needed."
+        dismissUpgrade();
+        notify.toast(
+          "Payment received. Pro will be live in a few seconds — refresh if needed.",
+          { duration: 6000 }
         );
-        setTimeout(() => setSaveToast(null), 6000);
       }
     }
     poll();
@@ -452,7 +479,9 @@ function EditorContent() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      alert("Please pick an image file (PNG, JPG, WEBP, GIF).");
+      notify.toast("Please pick an image file (PNG, JPG, WEBP, GIF).", {
+        tone: "error",
+      });
       return;
     }
     const reader = new FileReader();
@@ -464,8 +493,9 @@ function EditorContent() {
         window.localStorage.setItem(STORAGE_KEY, dataUrl);
       } catch {
         // Quota exceeded or blocked — image stays in memory for this session.
-        alert(
-          "Couldn't save the screenshot to localStorage (likely too large). It will stay loaded for this session only."
+        notify.toast(
+          "Couldn't cache the screenshot locally. It'll stay loaded for this session only.",
+          { tone: "error", duration: 5000 }
         );
       }
     };
@@ -487,8 +517,9 @@ function EditorContent() {
     const node = frameRef.current;
     if (!node) return;
     if (!isPro && downloadsRemaining <= 0) {
-      alert(
-        `You've used all ${DAILY_FREE_LIMIT} free downloads for today. Upgrade to Pro for unlimited exports.`
+      notify.toast(
+        `Daily limit reached (${DAILY_FREE_LIMIT}). Upgrade to Pro for unlimited exports.`,
+        { tone: "error", duration: 5000 }
       );
       return;
     }
@@ -526,7 +557,9 @@ function EditorContent() {
       if (!isPro) bumpDownloadCount();
     } catch (err) {
       console.error(err);
-      alert("Export failed. Check the console for details.");
+      notify.toast("Export failed. Check the console for details.", {
+        tone: "error",
+      });
     } finally {
       setIsExporting(false);
     }
@@ -536,11 +569,12 @@ function EditorContent() {
     const node = frameRef.current;
     if (!node) return;
     if (!screenshot) {
-      alert("Upload a screenshot first, then save.");
+      notify.toast("Upload a screenshot first, then save.", {
+        tone: "error",
+      });
       return;
     }
     setIsSaving(true);
-    setSaveToast(null);
     try {
       // Render to a Blob (rather than a data URL) so IndexedDB can store
       // it natively without the ~33% base64 inflation that localStorage
@@ -552,15 +586,17 @@ function EditorContent() {
       });
       if (!blob) throw new Error("Couldn't render the canvas to an image.");
       await addSavedImage({ blob, format: "png" });
-      setSaveToast("Saved to your library.");
-      // Auto-clear the toast after a moment so it doesn't linger.
-      setTimeout(() => setSaveToast(null), 2200);
+      notify.toast("Saved to your library.", {
+        tone: "success",
+        duration: 2500,
+      });
     } catch (err) {
       console.error(err);
-      alert(
+      notify.toast(
         err instanceof Error
           ? err.message
-          : "Couldn't save the image. Check the console."
+          : "Couldn't save the image. Check the console.",
+        { tone: "error", duration: 5000 }
       );
     } finally {
       setIsSaving(false);
@@ -881,7 +917,7 @@ function EditorContent() {
                   title={isPro ? p.label : `${p.label} — Pro only`}
                   onClick={() => {
                     if (!isPro) {
-                      handleUpgradeClick();
+                      confirmAndUpgrade("Pattern backgrounds");
                       return;
                     }
                     setBgId(p.id);
@@ -899,11 +935,6 @@ function EditorContent() {
 
       {/* CANVAS */}
       <main className="canvas-grid relative flex items-center justify-center overflow-auto p-10">
-        {saveToast && (
-          <div className="pointer-events-none absolute bottom-6 left-1/2 z-20 -translate-x-1/2 rounded-full border border-line bg-white px-4 py-2 font-mono text-[11px] tracking-wide text-ink shadow-tools">
-            ✓ {saveToast}
-          </div>
-        )}
 
         <div className="relative">
           {screenshot && (
@@ -1173,7 +1204,7 @@ function EditorContent() {
                   title={locked ? `${s.hint} (Pro-only)` : s.hint}
                   onClick={() => {
                     if (locked) {
-                      handleUpgradeClick();
+                      confirmAndUpgrade("4× retina exports");
                       return;
                     }
                     setScale(s.id);
