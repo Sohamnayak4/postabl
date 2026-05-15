@@ -48,6 +48,19 @@ export async function GET(req: Request) {
     !savedVerifier ||
     stateParam !== savedState
   ) {
+    // If the user already has a valid session cookie, they almost
+    // certainly finished signing in on a previous request and this is
+    // a duplicate callback (browser refresh, back/forward, Safe
+    // Browsing intervention). Silently land them on the editor instead
+    // of showing a scary "sign-in expired" error.
+    const sessionToken = store.get("postabl_session")?.value;
+    if (sessionToken) {
+      const dest =
+        savedNext && savedNext.startsWith("/") && !savedNext.startsWith("//")
+          ? savedNext
+          : "/editor";
+      return NextResponse.redirect(new URL(dest, req.url));
+    }
     return redirectToSignin(req, "bad_state");
   }
 
