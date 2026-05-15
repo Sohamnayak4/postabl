@@ -46,14 +46,21 @@ export type LSWebhookPayload = {
     custom_data?: { user_id?: string };
   };
   data: {
+    // "subscriptions"           — subscription lifecycle events
+    // "subscription-invoices"   — payment success/failure/recovery
+    // "orders"                  — one-time orders (we don't sell these)
     type: string;
     id: string;
     attributes: {
       status: string;
       user_email: string;
       user_name?: string;
-      renews_at: string | null;
-      ends_at: string | null;
+      // Present on subscription payloads, absent on invoice payloads.
+      renews_at?: string | null;
+      ends_at?: string | null;
+      // Present on invoice payloads, absent on subscription payloads.
+      // Lives in attributes (number), unlike subscription id (string).
+      subscription_id?: number;
       store_id?: number;
       variant_id?: number;
       product_id?: number;
@@ -65,7 +72,22 @@ export type LSWebhookPayload = {
 // ---- Event → state mapper ----------------------------------------------
 
 export type SubscriptionStateUpdate =
-  | { kind: "apply"; isPro: boolean; status: string; periodEnd: string | null }
+  | {
+      kind: "apply";
+      isPro: boolean;
+      // The status we want to write to subscription_status. For invoice
+      // events we synthesize "active" since the payload's own status
+      // field is invoice-level ("paid"), not subscription-level.
+      status: string;
+      // null means "leave the existing value alone" — important for
+      // invoice events which don't carry renews_at; we don't want to
+      // clobber the renews_at written by subscription_created.
+      periodEnd: string | null;
+      // The actual subscription id, regardless of payload type. For
+      // invoice events this is attributes.subscription_id; for
+      // subscription events it's data.id.
+      subscriptionId: string;
+    }
   | { kind: "ignore"; reason: string };
 
 // Translate an LS event into the row update we want to apply. Returning
@@ -77,9 +99,16 @@ export function mapEventToState(
 ): SubscriptionStateUpdate {
   const eventName = payload.meta.event_name;
   const attrs = payload.data.attributes;
-  const status = attrs.status;
-  // Prefer renews_at while active; fall back to ends_at when the sub
-  // is cancelled/expired so the row reflects the real cutoff.
+  const isInvoiceEvent = payload.data.type === "subscription-invoices";
+
+  // Subscription id resolution:
+  //  - subscription events → data.id IS the subscription id
+  //  - invoice events     → data.id is the invoice id; the real
+  //                         subscription id lives at attrs.subscription_id
+  const subscriptionId = isInvoiceEvent
+    ? String(attrs.subscription_id ?? "")
+    : payload.data.id;
+
   const periodEnd = attrs.renews_at ?? attrs.ends_at ?? null;
 
   switch (eventName) {
@@ -87,26 +116,52 @@ export function mapEventToState(
     case "subscription_updated":
     case "subscription_resumed":
     case "subscription_unpaused":
-    case "subscription_payment_success":
       return {
         kind: "apply",
         // `cancelled` is included intentionally — LS sends it the moment
         // a user cancels, but they keep access until the period ends and
         // the `subscription_expired` event fires.
         isPro: ["active", "on_trial", "past_due", "cancelled"].includes(
-          status
+          attrs.status
         ),
-        status,
+        status: attrs.status,
         periodEnd,
+        subscriptionId,
+      };
+
+    case "subscription_payment_success":
+      // Invoice payload — attrs.status is "paid" (an invoice status),
+      // *not* a subscription status. A successful payment unambiguously
+      // means the user has paid access; trust it. We synthesize
+      // status="active" and leave periodEnd null so the subscription_*
+      // events that follow fill in the canonical renews_at.
+      return {
+        kind: "apply",
+        isPro: true,
+        status: "active",
+        periodEnd: null,
+        subscriptionId,
       };
 
     case "subscription_cancelled":
       // The user clicked cancel — period continues, so don't yank yet.
-      return { kind: "apply", isPro: true, status: "cancelled", periodEnd };
+      return {
+        kind: "apply",
+        isPro: true,
+        status: "cancelled",
+        periodEnd,
+        subscriptionId,
+      };
 
     case "subscription_paused":
     case "subscription_expired":
-      return { kind: "apply", isPro: false, status, periodEnd };
+      return {
+        kind: "apply",
+        isPro: false,
+        status: attrs.status,
+        periodEnd,
+        subscriptionId,
+      };
 
     case "subscription_payment_failed":
       // LS retries on its own; logging is enough. If the retries run out

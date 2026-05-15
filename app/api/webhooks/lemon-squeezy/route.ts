@@ -57,7 +57,6 @@ export async function POST(req: NextRequest) {
   const eventName = payload.meta.event_name;
   const customUserId = payload.meta.custom_data?.user_id;
   const userEmail = payload.data.attributes.user_email;
-  const subscriptionId = payload.data.id;
 
   // Resolve the user. custom_data.user_id is the trustworthy path —
   // email can collide if a user changes their address upstream.
@@ -100,12 +99,15 @@ export async function POST(req: NextRequest) {
     ? new Date(decision.periodEnd).toISOString()
     : null;
 
+  // COALESCE on current_period_end so a null from an invoice event
+  // (which doesn't carry renews_at) doesn't wipe out the real value
+  // written by subscription_created.
   await sql`
     UPDATE users
     SET is_pro              = ${decision.isPro},
-        subscription_id     = ${subscriptionId},
+        subscription_id     = ${decision.subscriptionId},
         subscription_status = ${decision.status},
-        current_period_end  = ${periodEndIso},
+        current_period_end  = COALESCE(${periodEndIso}, current_period_end),
         updated_at          = now()
     WHERE id = ${user.id}
   `;
@@ -115,6 +117,7 @@ export async function POST(req: NextRequest) {
     userId: user.id,
     isPro: decision.isPro,
     status: decision.status,
+    subscriptionId: decision.subscriptionId,
     periodEnd: periodEndIso,
   });
 
