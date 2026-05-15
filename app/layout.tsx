@@ -6,7 +6,17 @@ import "./globals.css";
 // URLs in the <meta> tags that crawlers and link unfurlers look at.
 // Without this, Next emits a build-time warning and Slack/X previews
 // show as a broken image.
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://postabl.xyz";
+//
+// Normalize NEXT_PUBLIC_SITE_URL — Vercel users routinely paste the
+// bare hostname (e.g. "postabl.vercel.app"), but `new URL()` requires
+// a protocol or it throws ERR_INVALID_URL at build time.
+function normalizeSiteUrl(raw: string | undefined): string {
+  const fallback = "https://postabl.xyz";
+  if (!raw) return fallback;
+  if (/^https?:\/\//i.test(raw)) return raw;
+  return `https://${raw}`;
+}
+const siteUrl = normalizeSiteUrl(process.env.NEXT_PUBLIC_SITE_URL);
 
 const description =
   "The fastest way to turn raw screenshots into scroll-stopping images for X, LinkedIn, and the rest of the internet.";
