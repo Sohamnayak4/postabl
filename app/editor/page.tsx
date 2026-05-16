@@ -340,6 +340,12 @@ function EditorContent() {
   // look like a tiny pill floating in empty background.
   const windowAspectRatio = imgRatio ?? effectiveRatio;
 
+  // In portrait windows the macOS-style chrome (traffic-light dots +
+  // URL bar) looks chunky and the URL overflows. Drop the URL field
+  // and use smaller dots/padding so the bar reads as a clean header
+  // rather than a half-broken browser frame.
+  const isNarrowWindow = windowAspectRatio < 1;
+
   // Hydrate current user from the session cookie.
   useEffect(() => {
     let cancelled = false;
@@ -1016,25 +1022,43 @@ function EditorContent() {
           >
             {windowStyle !== "none" && (
               <div
-                className="flex items-center gap-1.5 border-b border-[#eaeaea] bg-[#f5f5f5] px-4 py-3"
+                className={`flex flex-shrink-0 items-center border-b border-[#eaeaea] bg-[#f5f5f5] ${
+                  isNarrowWindow
+                    ? "gap-1 px-2.5 py-2"
+                    : "gap-1.5 px-4 py-3"
+                }`}
                 style={
                   windowStyle === "dark"
                     ? { background: "#1a1a1a", borderColor: "#2a2a2a" }
                     : undefined
                 }
               >
-                <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
-                <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
-                <span className="h-3 w-3 rounded-full bg-[#28c840]" />
-                <input
-                  type="text"
-                  value={urlText}
-                  onChange={(e) => setUrlText(e.target.value)}
-                  onFocus={(e) => e.currentTarget.select()}
-                  placeholder="your-url.com"
-                  spellCheck={false}
-                  className="ml-4 flex-grow rounded-full border border-[#e4e0d4] bg-white px-3 py-1 text-center font-mono text-[11px] text-ink-faint outline-none transition-colors focus:border-ink focus:text-ink"
+                <span
+                  className={`rounded-full bg-[#ff5f57] ${
+                    isNarrowWindow ? "h-2 w-2" : "h-3 w-3"
+                  }`}
                 />
+                <span
+                  className={`rounded-full bg-[#febc2e] ${
+                    isNarrowWindow ? "h-2 w-2" : "h-3 w-3"
+                  }`}
+                />
+                <span
+                  className={`rounded-full bg-[#28c840] ${
+                    isNarrowWindow ? "h-2 w-2" : "h-3 w-3"
+                  }`}
+                />
+                {!isNarrowWindow && (
+                  <input
+                    type="text"
+                    value={urlText}
+                    onChange={(e) => setUrlText(e.target.value)}
+                    onFocus={(e) => e.currentTarget.select()}
+                    placeholder="your-url.com"
+                    spellCheck={false}
+                    className="ml-4 min-w-0 flex-grow rounded-full border border-[#e4e0d4] bg-white px-3 py-1 text-center font-mono text-[11px] text-ink-faint outline-none transition-colors focus:border-ink focus:text-ink"
+                  />
+                )}
               </div>
             )}
             {screenshot ? (
