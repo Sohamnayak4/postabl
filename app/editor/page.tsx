@@ -167,22 +167,24 @@ const SHADOW_VALUES: Record<ShadowPreset, string> = {
   Lift: "0 80px 140px -30px rgba(0,0,0,0.5), 0 40px 80px -30px rgba(0,0,0,0.35), 0 0 0 1px rgba(0,0,0,0.05)",
 };
 
-const RATIO_PRESETS = ["1:1", "16:9", "4:3", "9:16"] as const;
+// "Auto" derives its ratio from the uploaded image (or falls back to
+// 16:9 before anything is uploaded). The fixed presets let users pick
+// a deliberate output shape for a specific platform.
+const RATIO_PRESETS = ["Auto", "1:1", "16:9", "4:3", "9:16"] as const;
 type RatioPreset = (typeof RATIO_PRESETS)[number];
-const RATIO_VALUES: Record<RatioPreset, string> = {
-  "1:1": "1 / 1",
-  "16:9": "16 / 9",
-  "4:3": "4 / 3",
-  "9:16": "9 / 16",
-};
-// width / height — used to shrink the frame's width when portrait
-// ratios would otherwise overflow the viewport height.
-const RATIO_NUMBERS: Record<RatioPreset, number> = {
+
+// Numeric width/height ratios for the fixed presets. "Auto" is special
+// — handled inline by reading the loaded image's natural ratio.
+const FIXED_RATIO_NUMBERS: Record<
+  Exclude<RatioPreset, "Auto">,
+  number
+> = {
   "1:1": 1,
   "16:9": 16 / 9,
   "4:3": 4 / 3,
   "9:16": 9 / 16,
 };
+const DEFAULT_NATURAL_RATIO = 16 / 9; // placeholder shape pre-upload
 
 // Pattern backgrounds (Pro-gated) — same shape as BACKGROUNDS so they can
 // be set via setBgId.
@@ -251,7 +253,10 @@ function EditorContent() {
   const [radius, setRadius] = useState(10);
   const [paddingPreset, setPaddingPreset] = useState<PaddingPreset>("M");
   const [shadowPreset, setShadowPreset] = useState<ShadowPreset>("Deep");
-  const [ratio, setRatio] = useState<RatioPreset>("16:9");
+  const [ratio, setRatio] = useState<RatioPreset>("Auto");
+  // Natural width/height of the uploaded screenshot. Set on <img onLoad>;
+  // null means "no image loaded yet" so we fall back to DEFAULT_NATURAL_RATIO.
+  const [imgRatio, setImgRatio] = useState<number | null>(null);
   const [innerGlow, setInnerGlow] = useState(false);
   const [format, setFormat] = useState("PNG");
   const [scale, setScale] = useState("2x");
@@ -321,6 +326,14 @@ function EditorContent() {
 
   const downloadsRemaining = Math.max(0, DAILY_FREE_LIMIT - downloadsUsed);
   const outOfFreeDownloads = !isPro && downloadsRemaining <= 0;
+
+  // Numeric canvas ratio: "Auto" reads from the loaded image, fixed
+  // presets use their literal value. The natural image ratio drives the
+  // inner window's aspect ratio so the screenshot keeps its proportions
+  // even when the user picks a canvas ratio that doesn't match.
+  const naturalRatio = imgRatio ?? DEFAULT_NATURAL_RATIO;
+  const effectiveRatio: number =
+    ratio === "Auto" ? naturalRatio : FIXED_RATIO_NUMBERS[ratio];
 
   // Hydrate current user from the session cookie.
   useEffect(() => {
@@ -520,6 +533,7 @@ function EditorContent() {
 
   function handleClearScreenshot() {
     setScreenshot(null);
+    setImgRatio(null);
     void clearScreenshot().catch(() => {
       // ignore — local state is already cleared
     });
@@ -966,16 +980,23 @@ function EditorContent() {
           style={{
             ...bg.style,
             padding: `${padding}px`,
-            aspectRatio: RATIO_VALUES[ratio],
+            aspectRatio: effectiveRatio,
             // Width caps at 720px but shrinks when the ratio would
             // otherwise push the frame past the visible canvas height
             // (e.g. 9:16 portrait on a 900px-tall viewport).
-            width: `min(720px, calc((100vh - 180px) * ${RATIO_NUMBERS[ratio]}))`,
+            width: `min(720px, calc((100vh - 180px) * ${effectiveRatio}))`,
           }}
         >
           <div
-            className="w-full overflow-hidden bg-white transition-all"
+            className="flex max-h-full max-w-full flex-col overflow-hidden bg-white transition-all"
             style={{
+              // The "window" matches the screenshot's aspect ratio so it
+              // looks like a real frame around the image, not a wrapper
+              // that gets stretched. max-w/max-h keep it inside the
+              // canvas; the parent's flex centering pillarboxes or
+              // letterboxes it against the background when the canvas
+              // ratio differs from the image ratio.
+              aspectRatio: naturalRatio,
               borderRadius: `${radius}px`,
               boxShadow: innerGlow
                 ? `${SHADOW_VALUES[shadowPreset]}, inset 0 0 60px rgba(255,255,255,0.4), inset 0 1px 0 rgba(255,255,255,0.9)`
@@ -1006,30 +1027,59 @@ function EditorContent() {
               </div>
             )}
             {screenshot ? (
-              // Uploaded image replaces the placeholder.
+              // Uploaded image replaces the placeholder. The window
+              // above has aspect-ratio: naturalRatio, so the image
+              // fills it exactly without cropping or distortion.
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={screenshot}
                 alt="Uploaded screenshot"
-                className="block h-auto w-full"
+                className="block min-h-0 w-full flex-1"
+                style={{ objectFit: "cover" }}
+                onLoad={(e) => {
+                  const el = e.currentTarget;
+                  if (el.naturalWidth && el.naturalHeight) {
+                    setImgRatio(el.naturalWidth / el.naturalHeight);
+                  }
+                }}
               />
             ) : (
+              // Placeholder shown until the user uploads. We scale type
+              // and stack the buttons vertically when the canvas is in a
+              // narrow portrait ratio (9:16) so nothing overflows the
+              // frame at ~400px wide.
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="group min-h-[280px] cursor-pointer p-10 transition-colors hover:bg-bg-alt/60"
+                className={`group flex min-h-[260px] cursor-pointer flex-col justify-center transition-colors hover:bg-bg-alt/60 ${
+                  ratio === "9:16" ? "p-6" : "p-10"
+                }`}
               >
-                <h2 className="mb-3 font-serif text-[32px] font-medium leading-[1.1] tracking-tight">
+                <h2
+                  className={`mb-3 font-serif font-medium leading-[1.05] tracking-tight ${
+                    ratio === "9:16" ? "text-[22px]" : "text-[32px]"
+                  }`}
+                >
                   Your screenshots,{" "}
                   <em className="text-accent">seriously upgraded.</em>
                 </h2>
-                <p className="mb-5 text-sm leading-[1.55] text-ink-soft">
-                  Drop an image. Pick a background. Ship something people actually want to look at. That&apos;s the whole workflow.
+                <p
+                  className={`mb-5 leading-[1.55] text-ink-soft ${
+                    ratio === "9:16" ? "text-[12px]" : "text-sm"
+                  }`}
+                >
+                  {ratio === "9:16"
+                    ? "Drop an image. Pick a background. Ship it."
+                    : "Drop an image. Pick a background. Ship something people actually want to look at. That's the whole workflow."}
                 </p>
-                <div className="flex gap-2">
-                  <div className="rounded-lg bg-ink px-3.5 py-2 text-xs font-medium text-white">
+                <div
+                  className={`flex gap-2 ${
+                    ratio === "9:16" ? "flex-col" : ""
+                  }`}
+                >
+                  <div className="rounded-lg bg-ink px-3.5 py-2 text-center text-xs font-medium text-white">
                     Upload screenshot ↑
                   </div>
-                  <div className="rounded-lg border border-line px-3.5 py-2 text-xs font-medium text-ink">
+                  <div className="rounded-lg border border-line px-3.5 py-2 text-center text-xs font-medium text-ink">
                     Learn more
                   </div>
                 </div>
@@ -1052,7 +1102,7 @@ function EditorContent() {
               setRadius(10);
               setPaddingPreset("M");
               setShadowPreset("Deep");
-              setRatio("16:9");
+              setRatio("Auto");
               setInnerGlow(false);
               setFormat("PNG");
               setScale("2x");
@@ -1166,11 +1216,16 @@ function EditorContent() {
           <div className="mb-3 font-mono text-[10px] uppercase tracking-wider text-ink-faint">
             Canvas
           </div>
-          <div className="grid grid-cols-4 gap-1 rounded-lg border border-line bg-bg-alt p-1">
+          <div className="grid grid-cols-5 gap-1 rounded-lg border border-line bg-bg-alt p-1">
             {RATIO_PRESETS.map((r) => (
               <button
                 key={r}
                 onClick={() => setRatio(r)}
+                title={
+                  r === "Auto"
+                    ? "Auto — canvas matches your screenshot's aspect ratio"
+                    : `${r} — exports at this exact ratio (image letterboxes inside if needed)`
+                }
                 className={segBtn(r === ratio)}
               >
                 {r}
