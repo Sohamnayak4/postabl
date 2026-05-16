@@ -335,6 +335,11 @@ function EditorContent() {
   const effectiveRatio: number =
     ratio === "Auto" ? naturalRatio : FIXED_RATIO_NUMBERS[ratio];
 
+  // Pre-upload, there is no real "image ratio" — let the placeholder
+  // window fill whatever canvas the user has selected so it doesn't
+  // look like a tiny pill floating in empty background.
+  const windowAspectRatio = imgRatio ?? effectiveRatio;
+
   // Hydrate current user from the session cookie.
   useEffect(() => {
     let cancelled = false;
@@ -981,22 +986,28 @@ function EditorContent() {
             ...bg.style,
             padding: `${padding}px`,
             aspectRatio: effectiveRatio,
-            // Width caps at 720px but shrinks when the ratio would
-            // otherwise push the frame past the visible canvas height
-            // (e.g. 9:16 portrait on a 900px-tall viewport).
-            width: `min(720px, calc((100vh - 180px) * ${effectiveRatio}))`,
+            // The canvas takes the smallest of:
+            //   - a hard cap (1100px) so on huge monitors it doesn't
+            //     dwarf the rest of the UI
+            //   - what the viewport height can fit at the chosen ratio
+            //     (otherwise tall portrait canvases overflow downward)
+            //   - 92% of the available width between the two sidebars
+            //     so it scales up on wide displays but doesn't crowd
+            //     the controls. The 660px subtracts both sidebars
+            //     (260+320) plus the main content padding.
+            width: `min(1100px, calc((100vh - 180px) * ${effectiveRatio}), calc((100vw - 660px) * 0.92))`,
           }}
         >
           <div
             className="flex max-h-full max-w-full flex-col overflow-hidden bg-white transition-all"
             style={{
-              // The "window" matches the screenshot's aspect ratio so it
-              // looks like a real frame around the image, not a wrapper
-              // that gets stretched. max-w/max-h keep it inside the
-              // canvas; the parent's flex centering pillarboxes or
-              // letterboxes it against the background when the canvas
-              // ratio differs from the image ratio.
-              aspectRatio: naturalRatio,
+              // After upload: window matches the screenshot's aspect
+              // ratio so the frame hugs the image; letterboxes or
+              // pillarboxes against the canvas ratio if they differ.
+              // Before upload: window fills the canvas (effectiveRatio)
+              // so the placeholder isn't a small horizontal pill
+              // floating inside a tall portrait canvas.
+              aspectRatio: windowAspectRatio,
               borderRadius: `${radius}px`,
               boxShadow: innerGlow
                 ? `${SHADOW_VALUES[shadowPreset]}, inset 0 0 60px rgba(255,255,255,0.4), inset 0 1px 0 rgba(255,255,255,0.9)`
