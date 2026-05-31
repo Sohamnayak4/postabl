@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { NotifyProvider } from "@/components/notify";
 
@@ -78,6 +79,7 @@ export default function RootLayout({
       </head>
       <body className="antialiased" suppressHydrationWarning>
         <NotifyProvider>{children}</NotifyProvider>
+        <Analytics />
       </body>
     </html>
   );
