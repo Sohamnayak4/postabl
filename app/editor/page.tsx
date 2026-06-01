@@ -260,7 +260,7 @@ function EditorContent() {
   const [innerGlow, setInnerGlow] = useState(false);
   const [format, setFormat] = useState("PNG");
   const [scale, setScale] = useState("2x");
-  const [windowStyle, setWindowStyle] = useState<"light" | "dark" | "none">("light");
+  const [windowStyle, setWindowStyle] = useState<"light" | "dark" | "none">("none");
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   // Dev-only override — lets us preview Pro-gated UI without going
@@ -278,6 +278,12 @@ function EditorContent() {
   // so SSR renders the desktop shell; the effect below corrects it on
   // hydrate. The Tailwind `md:` breakpoint matches the same 768px cutoff.
   const [isMobile, setIsMobile] = useState(false);
+  // First-run hint that the URL bar inside the window chrome is
+  // editable. The bar visually mimics a real Chrome address field, so
+  // users don't always realise they can click it. The tip floats below
+  // the canvas (outside the export frame) and is dismissed permanently
+  // once the user either clicks × or types into the URL.
+  const [urlTipDismissed, setUrlTipDismissed] = useState(true);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -321,6 +327,30 @@ function EditorContent() {
     mq.addEventListener("change", update);
     return () => mq.removeEventListener("change", update);
   }, []);
+
+  // Restore "URL bar is editable" tip dismissal across sessions. Default
+  // is dismissed=true to avoid an SSR-vs-client flash; we only un-dismiss
+  // after confirming the user hasn't already closed it.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const dismissed =
+        window.localStorage.getItem("postabl:url-tip-dismissed") === "1";
+      if (!dismissed) setUrlTipDismissed(false);
+    } catch {
+      // localStorage blocked — show the tip anyway, no big deal.
+      setUrlTipDismissed(false);
+    }
+  }, []);
+
+  function dismissUrlTip() {
+    setUrlTipDismissed(true);
+    try {
+      window.localStorage.setItem("postabl:url-tip-dismissed", "1");
+    } catch {
+      // ignore
+    }
+  }
 
   function bumpDownloadCount() {
     const next = bumpDownloads();
@@ -1056,6 +1086,31 @@ function EditorContent() {
               ×
             </button>
           )}
+          {/* "URL bar is editable" hint — only shown when the window
+              actually HAS a URL bar (light/dark chrome, landscape
+              orientation) and the user hasn't dismissed it yet. Lives
+              OUTSIDE frameRef so it won't be in the exported PNG. */}
+          {!urlTipDismissed &&
+            windowStyle !== "none" &&
+            !isNarrowWindow && (
+              <div className="pointer-events-auto absolute left-1/2 top-full z-10 mt-3 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full border border-line bg-white px-3 py-1.5 font-mono text-[10px] tracking-wide text-ink-soft shadow-tools">
+                <span aria-hidden className="text-ink-faint">
+                  ↑
+                </span>
+                <span>
+                  The URL bar is editable —{" "}
+                  <span className="font-medium text-ink">click it</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={dismissUrlTip}
+                  aria-label="Dismiss tip"
+                  className="-mr-1 ml-1 flex h-4 w-4 items-center justify-center rounded-full text-[14px] leading-none text-ink-faint transition-colors hover:bg-bg-alt hover:text-ink"
+                >
+                  ×
+                </button>
+              </div>
+            )}
         <div
           ref={frameRef}
           className="flex max-w-full items-center justify-center rounded-2xl shadow-canvas transition-all"
@@ -1123,11 +1178,18 @@ function EditorContent() {
                   <input
                     type="text"
                     value={urlText}
-                    onChange={(e) => setUrlText(e.target.value)}
+                    onChange={(e) => {
+                      setUrlText(e.target.value);
+                      // First edit → permanently dismiss the tip. The
+                      // user has clearly figured it out.
+                      if (!urlTipDismissed) dismissUrlTip();
+                    }}
                     onFocus={(e) => e.currentTarget.select()}
                     placeholder="your-url.com"
                     spellCheck={false}
-                    className="ml-4 min-w-0 flex-grow rounded-full border border-[#e4e0d4] bg-white px-3 py-1 text-center font-mono text-[11px] text-ink-faint outline-none transition-colors focus:border-ink focus:text-ink"
+                    title="Click to edit the URL shown in the screenshot"
+                    aria-label="URL displayed in window chrome (editable)"
+                    className="ml-4 min-w-0 flex-grow cursor-text rounded-full border border-[#d4cfc1] bg-white px-3 py-1 text-center font-mono text-[11px] text-ink-faint outline-none transition-all hover:border-ink/40 hover:bg-bg-alt/60 hover:text-ink-soft focus:border-ink focus:bg-white focus:text-ink"
                   />
                 )}
               </div>
