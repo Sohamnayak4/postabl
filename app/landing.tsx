@@ -22,39 +22,39 @@ export default function LandingPage() {
 
       {/* NAV */}
       <nav
-        className={`fixed inset-x-0 top-0 z-[100] flex items-center justify-between px-10 py-5 backdrop-blur-md bg-[rgba(247,245,240,0.75)] border-b transition-colors ${
+        className={`fixed inset-x-0 top-0 z-[100] flex items-center justify-between px-5 py-4 backdrop-blur-md bg-[rgba(247,245,240,0.75)] border-b transition-colors md:px-10 md:py-5 ${
           scrolled ? "border-line" : "border-transparent"
         }`}
       >
         <Link
           href="/"
-          className="flex items-baseline gap-[2px] font-serif text-[22px] font-medium tracking-tight text-ink"
+          className="flex items-baseline gap-[2px] font-serif text-[20px] font-medium tracking-tight text-ink md:text-[22px]"
         >
           postabl
           <span className="inline-block h-[7px] w-[7px] rounded-full bg-accent" />
         </Link>
-        <div className="flex items-center gap-8 text-sm">
+        <div className="flex items-center gap-3 text-sm md:gap-8">
           <a
             href="#features"
-            className="text-ink-soft transition-colors hover:text-ink"
+            className="hidden text-ink-soft transition-colors hover:text-ink md:inline"
           >
             Features
           </a>
           <a
             href="#pricing"
-            className="text-ink-soft transition-colors hover:text-ink"
+            className="hidden text-ink-soft transition-colors hover:text-ink md:inline"
           >
             Pricing
           </a>
           <Link
             href="/signin"
-            className="text-ink-soft transition-colors hover:text-ink"
+            className="hidden text-ink-soft transition-colors hover:text-ink md:inline"
           >
             Sign in
           </Link>
           <Link
             href="/signin"
-            className="inline-flex items-center gap-1.5 rounded-full bg-ink px-[18px] py-[9px] text-sm font-medium text-bg transition-all hover:-translate-y-[1px] hover:bg-black"
+            className="inline-flex items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-[13px] font-medium text-bg transition-all hover:-translate-y-[1px] hover:bg-black md:px-[18px] md:py-[9px] md:text-sm"
           >
             Start free →
           </Link>
@@ -62,42 +62,51 @@ export default function LandingPage() {
       </nav>
 
       {/* HERO */}
-      <section className="relative z-[2] mx-auto max-w-[1200px] px-10 pt-[140px] pb-20">
-        <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-line bg-bg-alt px-[14px] py-[6px] text-xs uppercase tracking-wider text-ink-faint">
+      <section className="relative z-[2] mx-auto max-w-[1200px] px-5 pt-[100px] pb-12 md:px-10 md:pt-[140px] md:pb-20">
+        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-line bg-bg-alt px-[12px] py-[5px] text-[10px] uppercase tracking-wider text-ink-faint md:mb-8 md:px-[14px] md:py-[6px] md:text-xs">
           <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse-dot" />
           Launch special — 33% off lifetime
         </div>
-        <h1 className="hero-title mb-8 font-serif font-normal leading-[0.95] text-[clamp(52px,8vw,112px)] tracking-[-3px]">
+        <h1 className="hero-title mb-6 font-serif font-normal leading-[0.95] text-[clamp(44px,12vw,112px)] tracking-[-1.5px] md:mb-8 md:tracking-[-3px]">
           Make your
           <br />
-          screenshots <em className="text-accent not-italic-weight">postabl.</em>
+          screenshots{" "}
+          <em className="text-accent not-italic-weight">postabl.</em>
         </h1>
-        <p className="mb-10 max-w-[540px] text-[19px] leading-[1.5] text-ink-soft">
-          The fastest way to turn raw screenshots into scroll-stopping images for X, LinkedIn, and the rest of the internet. Free to start.
+        <p className="mb-8 max-w-[540px] text-[16px] leading-[1.5] text-ink-soft md:mb-10 md:text-[19px]">
+          The fastest way to turn raw screenshots into scroll-stopping images
+          for X, LinkedIn, and the rest of the internet. Free to start.
         </p>
-        <div className="mb-[60px] flex flex-wrap items-center gap-3">
+        <div className="mb-10 flex flex-wrap items-center gap-3 md:mb-[60px]">
           <Link
             href="/signin"
-            className="inline-flex items-center gap-1.5 rounded-full bg-ink px-7 py-[14px] text-[15px] font-medium text-bg transition-all hover:-translate-y-[1px] hover:bg-black"
+            className="inline-flex items-center gap-1.5 rounded-full bg-ink px-6 py-3 text-sm font-medium text-bg transition-all hover:-translate-y-[1px] hover:bg-black md:px-7 md:py-[14px] md:text-[15px]"
           >
             Get started →
           </Link>
+          {/* Secondary CTA — hidden on mobile to keep a single, clear
+              primary action above the fold. Desktop users still see
+              the anchor link to #features. */}
           <a
             href="#features"
-            className="inline-flex items-center gap-1.5 rounded-full bg-transparent px-7 py-[14px] text-[15px] font-medium text-ink transition-transform"
+            className="hidden items-center gap-1.5 rounded-full bg-transparent px-6 py-3 text-sm font-medium text-ink transition-transform md:inline-flex md:px-7 md:py-[14px] md:text-[15px]"
           >
             See how it works
           </a>
         </div>
-        <div className="flex flex-wrap items-center gap-x-[18px] gap-y-2 text-[13px] text-ink-faint">
-          <span className="flex items-center gap-1.5">● 2 free downloads per day</span>
+        <div className="flex flex-wrap items-center gap-x-[18px] gap-y-2 text-[12px] text-ink-faint md:text-[13px]">
+          <span className="flex items-center gap-1.5">
+            ● 2 free downloads per day
+          </span>
           <span className="flex items-center gap-1.5">● No credit card</span>
-          <span className="flex items-center gap-1.5">● Works in your browser</span>
+          <span className="flex items-center gap-1.5">
+            ● Works in your browser
+          </span>
         </div>
       </section>
 
       {/* DEMO — side-by-side before/after */}
-      <section className="relative z-[2] mx-auto mt-10 max-w-[1200px] px-10">
+      <section className="relative z-[2] mx-auto mt-6 max-w-[1200px] px-5 md:mt-10 md:px-10">
         {(() => {
           // Shared "screenshot content" — the user's raw capture (a
           // dashboard-style mockup). Identical on both sides so the only
@@ -134,10 +143,10 @@ export default function LandingPage() {
 
           return (
             <div className="relative">
-              <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
                 {/* BEFORE */}
                 <div className="flex flex-col overflow-hidden rounded-2xl border border-line bg-bg-alt">
-                  <div className="flex items-center justify-between border-b border-line px-5 py-3">
+                  <div className="flex items-center justify-between border-b border-line px-4 py-2.5 md:px-5 md:py-3">
                     <div className="font-mono text-[11px] uppercase tracking-wider text-ink-faint">
                       <span className="text-ink">01 —</span> Before
                     </div>
@@ -147,17 +156,18 @@ export default function LandingPage() {
                   </div>
                   {/* Raw screenshot fills the panel edge-to-edge. No
                       padding, no border, no shadow — it IS the capture. */}
-                  <div className="flex min-h-[320px] flex-grow flex-col justify-center bg-white">
+                  <div className="flex min-h-[240px] flex-grow flex-col justify-center bg-white md:min-h-[320px]">
                     {screenshotContent}
                   </div>
-                  <div className="border-t border-line bg-bg px-5 py-3 font-mono text-[10px] tracking-wide text-ink-faint">
-                    Flat. Cramped. <span className="text-ink-soft">Scroll-past material.</span>
+                  <div className="border-t border-line bg-bg px-4 py-2.5 font-mono text-[10px] tracking-wide text-ink-faint md:px-5 md:py-3">
+                    Flat. Cramped.{" "}
+                    <span className="text-ink-soft">Scroll-past material.</span>
                   </div>
                 </div>
 
                 {/* AFTER */}
                 <div className="flex flex-col overflow-hidden rounded-2xl border border-line bg-bg-alt">
-                  <div className="flex items-center justify-between border-b border-line px-5 py-3">
+                  <div className="flex items-center justify-between border-b border-line px-4 py-2.5 md:px-5 md:py-3">
                     <div className="font-mono text-[11px] uppercase tracking-wider text-ink-faint">
                       <span className="text-accent">02 —</span> After
                     </div>
@@ -166,7 +176,7 @@ export default function LandingPage() {
                     </div>
                   </div>
                   <div
-                    className="flex min-h-[320px] flex-grow items-center justify-center p-10"
+                    className="flex min-h-[240px] flex-grow items-center justify-center p-6 md:min-h-[320px] md:p-10"
                     style={{
                       background:
                         "radial-gradient(circle at 30% 20%, #fce4b6, transparent 50%), radial-gradient(circle at 80% 80%, #e8a598, transparent 50%), linear-gradient(135deg, #f4c896, #d98a7a)",
@@ -182,8 +192,9 @@ export default function LandingPage() {
                       {screenshotContent}
                     </div>
                   </div>
-                  <div className="border-t border-line bg-bg px-5 py-3 font-mono text-[10px] tracking-wide text-ink-faint">
-                    Framed. Breathing. <span className="text-accent">Actually postabl.</span>
+                  <div className="border-t border-line bg-bg px-4 py-2.5 font-mono text-[10px] tracking-wide text-ink-faint md:px-5 md:py-3">
+                    Framed. Breathing.{" "}
+                    <span className="text-accent">Actually postabl.</span>
                   </div>
                 </div>
               </div>
@@ -198,13 +209,13 @@ export default function LandingPage() {
           );
         })()}
 
-        <p className="mt-6 text-center font-mono text-[11px] tracking-wide text-ink-faint">
+        <p className="mt-5 text-center font-mono text-[11px] tracking-wide text-ink-faint md:mt-6">
           Same pixels. Different posture.
         </p>
       </section>
 
       {/* MARQUEE */}
-      <div className="relative z-[2] mt-[120px] overflow-hidden border-y border-line bg-bg-alt py-5">
+      <div className="relative z-[2] mt-16 overflow-hidden border-y border-line bg-bg-alt py-4 md:mt-[120px] md:py-5">
         <div className="flex animate-marquee gap-[60px] whitespace-nowrap text-[13px] text-ink-faint">
           {Array.from({ length: 2 }).map((_, dupe) => (
             <div key={dupe} className="flex items-center gap-[60px]">
@@ -213,7 +224,8 @@ export default function LandingPage() {
               </span>
               <span className="flex items-center gap-3">●</span>
               <span className="flex items-center gap-3">
-                Indie hackers <em className="not-italic text-accent">love it</em>
+                Indie hackers{" "}
+                <em className="not-italic text-accent">love it</em>
               </span>
               <span className="flex items-center gap-3">●</span>
               <span className="flex items-center gap-3">
@@ -232,33 +244,57 @@ export default function LandingPage() {
       {/* FEATURES */}
       <section
         id="features"
-        className="relative z-[2] mx-auto max-w-[1200px] px-10 py-[120px]"
+        className="relative z-[2] mx-auto max-w-[1200px] px-5 py-16 md:px-10 md:py-[120px]"
       >
-        <div className="mb-20 grid grid-cols-1 items-end gap-10 md:grid-cols-[1fr_2fr]">
+        <div className="mb-12 grid grid-cols-1 items-end gap-6 md:mb-20 md:grid-cols-[1fr_2fr] md:gap-10">
           <div className="font-mono text-xs uppercase tracking-wider text-ink-faint">
             /01 — Features
           </div>
-          <h2 className="font-serif text-[56px] font-normal leading-[1.05] tracking-[-1.5px]">
+          <h2 className="font-serif text-[36px] font-normal leading-[1.05] tracking-[-1px] md:text-[56px] md:tracking-[-1.5px]">
             Small tool. <em className="text-accent">Big difference.</em>
           </h2>
         </div>
         <div className="grid grid-cols-1 gap-px overflow-hidden rounded border border-line bg-line md:grid-cols-3">
           {[
-            ["01", "Backgrounds that breathe", "Hand-picked backgrounds that don't look like every other screenshot tool. Solid, textured, dithered, or bring your own."],
-            ["02", "Padding, done right", "Smart padding that scales with your image. Frames that feel balanced without fiddling with pixel values."],
-            ["03", "Shadows with taste", "Drop shadows, inset glows, soft lifts. Presets that actually look good, not the default Figma dropshadow."],
-            ["04", "Window chrome", "macOS, iOS, Windows, or minimal. Light and dark. Add a browser bar, a phone frame, or nothing at all."],
-            ["05", "Export that ships", "PNG, JPG, WebP. Export at 1×, 2×, or 4× for retina-sharp posts. Copy to clipboard in one click."],
-            ["06", "Zero fluff", "Paste, tweak, download. No accounts required, no forced onboarding, no \"upgrade now\" every two minutes."],
+            [
+              "01",
+              "Backgrounds that breathe",
+              "Hand-picked backgrounds that don't look like every other screenshot tool. Solid, textured, dithered, or bring your own.",
+            ],
+            [
+              "02",
+              "Padding, done right",
+              "Smart padding that scales with your image. Frames that feel balanced without fiddling with pixel values.",
+            ],
+            [
+              "03",
+              "Shadows with taste",
+              "Drop shadows, inset glows, soft lifts. Presets that actually look good, not the default Figma dropshadow.",
+            ],
+            [
+              "04",
+              "Window chrome",
+              "macOS, iOS, Windows, or minimal. Light and dark. Add a browser bar, a phone frame, or nothing at all.",
+            ],
+            [
+              "05",
+              "Export that ships",
+              "PNG, JPG, WebP. Export at 1×, 2×, or 4× for retina-sharp posts. Copy to clipboard in one click.",
+            ],
+            [
+              "06",
+              "Zero fluff",
+              'Paste, tweak, download. No accounts required, no forced onboarding, no "upgrade now" every two minutes.',
+            ],
           ].map(([num, title, desc]) => (
             <div
               key={num}
-              className="bg-bg p-10 transition-colors hover:bg-bg-alt"
+              className="bg-bg p-6 transition-colors hover:bg-bg-alt md:p-10"
             >
-              <div className="mb-20 font-mono text-[11px] tracking-wider text-ink-faint">
+              <div className="mb-10 font-mono text-[11px] tracking-wider text-ink-faint md:mb-20">
                 {num}
               </div>
-              <h3 className="mb-2.5 font-serif text-[26px] font-medium leading-[1.1] tracking-tight">
+              <h3 className="mb-2.5 font-serif text-[22px] font-medium leading-[1.1] tracking-tight md:text-[26px]">
                 {title}
               </h3>
               <p className="text-sm leading-[1.55] text-ink-soft">{desc}</p>
@@ -270,30 +306,35 @@ export default function LandingPage() {
       {/* PRICING */}
       <section
         id="pricing"
-        className="relative z-[2] mx-auto max-w-[1200px] px-10 py-[120px]"
+        className="relative z-[2] mx-auto max-w-[1200px] px-5 py-16 md:px-10 md:py-[120px]"
       >
-        <div className="grid grid-cols-1 items-end gap-10 md:grid-cols-[1fr_2fr]">
+        <div className="grid grid-cols-1 items-end gap-6 md:grid-cols-[1fr_2fr] md:gap-10">
           <div className="font-mono text-xs uppercase tracking-wider text-ink-faint">
             /02 — Pricing
           </div>
-          <h2 className="font-serif text-[56px] font-normal leading-[1.05] tracking-[-1.5px]">
+          <h2 className="font-serif text-[36px] font-normal leading-[1.05] tracking-[-1px] md:text-[56px] md:tracking-[-1.5px]">
             One price. <em className="text-accent">Then you own it.</em>
           </h2>
         </div>
-        <div className="mt-[60px] grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div className="mt-10 grid grid-cols-1 gap-6 md:mt-[60px] md:grid-cols-2">
           {/* FREE */}
-          <div className="flex flex-col rounded-xl border border-line bg-bg p-10">
+          <div className="flex flex-col rounded-xl border border-line bg-bg p-6 md:p-10">
             <div className="mb-6 font-mono text-xs uppercase tracking-wider">
               Free
             </div>
-            <div className="mb-1 flex items-baseline gap-1.5 font-serif text-[72px] font-normal leading-none tracking-[-2px]">
-              <span className="text-[28px] opacity-70">$</span>0
+            <div className="mb-1 flex items-baseline gap-1.5 font-serif text-[56px] font-normal leading-none tracking-[-2px] md:text-[72px]">
+              <span className="text-[24px] opacity-70 md:text-[28px]">$</span>0
             </div>
-            <div className="mb-8 text-[13px] text-ink-faint">
+            <div className="mb-6 text-[13px] text-ink-faint md:mb-8">
               Forever. No card needed.
             </div>
-            <ul className="mb-8 flex-grow list-none">
-              {["2 downloads per day", "Medium quality exports", "All backgrounds & presets", "No watermark"].map((item) => (
+            <ul className="mb-6 flex-grow list-none md:mb-8">
+              {[
+                "2 downloads per day",
+                "Medium quality exports",
+                "All backgrounds & presets",
+                "No watermark",
+              ].map((item) => (
                 <li
                   key={item}
                   className="check-bullet flex items-center gap-2.5 border-b border-black/5 py-2.5 text-sm"
@@ -310,32 +351,39 @@ export default function LandingPage() {
             </Link>
           </div>
           {/* PRO */}
-          <div className="relative flex flex-col rounded-xl border border-ink bg-ink p-10 text-bg">
-            <div className="absolute -top-3 right-6 rounded-full bg-accent px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-white">
+          <div className="relative flex flex-col rounded-xl border border-ink bg-ink p-6 text-bg md:p-10">
+            <div className="absolute -top-3 right-5 rounded-full bg-accent px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-white md:right-6">
               Launch price
             </div>
             <div className="mb-6 font-mono text-xs uppercase tracking-wider">
               Pro — Yearly
             </div>
-            <div className="mb-1 flex items-baseline gap-1.5 font-serif text-[72px] font-normal leading-none tracking-[-2px]">
-              <span className="text-[28px] opacity-70">$</span>9.99
-              <span className="font-sans text-base opacity-60">/year</span>
+            <div className="mb-1 flex items-baseline gap-1.5 font-serif text-[56px] font-normal leading-none tracking-[-2px] md:text-[72px]">
+              <span className="text-[24px] opacity-70 md:text-[28px]">$</span>
+              9.99
+              <span className="font-sans text-sm opacity-60 md:text-base">
+                /year
+              </span>
             </div>
-            <div className="mb-8 text-[13px] text-white/75">
+            <div className="mb-6 text-[13px] text-white/75 md:mb-8">
               <span className="mr-2 line-through">$14.99</span>
               Billed annually. Cancel anytime.
             </div>
-            <ul className="mb-8 flex-grow list-none">
-              {["Unlimited downloads", "Maximum quality (4× retina)", "All backgrounds & presets", "Priority export speeds", "Early access to new features"].map(
-                (item) => (
-                  <li
-                    key={item}
-                    className="check-bullet flex items-center gap-2.5 border-b border-white/10 py-2.5 text-sm text-white/75"
-                  >
-                    {item}
-                  </li>
-                )
-              )}
+            <ul className="mb-6 flex-grow list-none md:mb-8">
+              {[
+                "Unlimited downloads",
+                "Maximum quality (4× retina)",
+                "All backgrounds & presets",
+                "Priority export speeds",
+                "Early access to new features",
+              ].map((item) => (
+                <li
+                  key={item}
+                  className="check-bullet flex items-center gap-2.5 border-b border-white/10 py-2.5 text-sm text-white/75"
+                >
+                  {item}
+                </li>
+              ))}
             </ul>
             <Link
               href="/signin"
@@ -345,21 +393,23 @@ export default function LandingPage() {
             </Link>
           </div>
         </div>
-        <p className="mt-8 text-center text-[13px] text-ink-faint">
-          In India? Pay ₹749/year (normally ₹999). AI-generated backgrounds coming as a separate monthly plan.
+        <p className="mt-6 text-center text-[12px] text-ink-faint md:mt-8 md:text-[13px]">
+          In India? Pay ₹749/year (normally ₹999). AI-generated backgrounds
+          coming as a separate monthly plan.
         </p>
       </section>
 
       {/* FOOTER */}
-      <footer className="relative z-[2] mt-20 border-t border-line px-10 pb-10 pt-20">
-        <div className="mx-auto mb-[60px] flex max-w-[1200px] flex-col items-start justify-between gap-10 md:flex-row md:items-end">
+      <footer className="relative z-[2] mt-16 border-t border-line px-5 pb-8 pt-12 md:mt-20 md:px-10 md:pb-10 md:pt-20">
+        <div className="mx-auto mb-10 flex max-w-[1200px] flex-col items-start justify-between gap-8 md:mb-[60px] md:flex-row md:items-end md:gap-10">
           <div>
             <div className="flex items-baseline gap-[2px] font-serif text-[22px] font-medium tracking-tight">
               postabl
               <span className="inline-block h-[7px] w-[7px] rounded-full bg-accent" />
             </div>
-            <p className="mt-4 max-w-[400px] font-serif text-[32px] font-normal leading-[1.2] tracking-tight">
-              Stop posting <em className="text-accent">ugly</em> screenshots. You&apos;re better than that.
+            <p className="mt-4 max-w-[400px] font-serif text-[24px] font-normal leading-[1.2] tracking-tight md:text-[32px]">
+              Stop posting <em className="text-accent">ugly</em> screenshots.
+              You&apos;re better than that.
             </p>
           </div>
           <a
@@ -384,6 +434,7 @@ export default function LandingPage() {
           <span>Made for posters, everywhere.</span>
         </div>
       </footer>
+
     </div>
   );
 }

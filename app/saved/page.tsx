@@ -406,6 +406,7 @@ export default function SavedPage() {
                     <button
                       type="button"
                       onClick={() => handleDelete(img.id)}
+                      aria-label="Delete from library"
                       title="Remove from library"
                       className="rounded-md border border-line bg-transparent px-2 py-1 font-mono text-[11px] text-ink-soft transition-all hover:border-accent/40 hover:bg-accent/5 hover:text-accent"
                     >

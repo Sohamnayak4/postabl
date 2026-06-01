@@ -274,6 +274,10 @@ function EditorContent() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [downloadsUsed, setDownloadsUsed] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
+  // Drives the mobile-vs-desktop layout swap. Initial state is `false`
+  // so SSR renders the desktop shell; the effect below corrects it on
+  // hydrate. The Tailwind `md:` breakpoint matches the same 768px cutoff.
+  const [isMobile, setIsMobile] = useState(false);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -304,6 +308,18 @@ function EditorContent() {
   useEffect(() => {
     setDownloadsUsed(getDownloadsUsed());
     if (IS_DEV) setDevProOverride(getIsPro());
+  }, []);
+
+  // Track viewport size so we can pick a mobile-appropriate canvas width
+  // calc. The grid → flex layout swap is pure CSS via Tailwind's `md:`
+  // prefix; this state only exists for the inline canvas width.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 767px)");
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
   }, []);
 
   function bumpDownloadCount() {
@@ -652,7 +668,7 @@ function EditorContent() {
   }
 
   return (
-    <div className="grid h-screen grid-cols-[260px_1fr_320px] grid-rows-[56px_1fr] overflow-hidden bg-bg text-sm text-ink">
+    <div className="flex min-h-screen flex-col bg-bg text-sm text-ink md:grid md:h-screen md:grid-cols-[260px_1fr_320px] md:grid-rows-[56px_1fr] md:overflow-hidden">
       {/* Hidden file input for upload */}
       <input
         ref={fileInputRef}
@@ -663,21 +679,21 @@ function EditorContent() {
       />
 
       {/* TOP BAR */}
-      <header className="col-span-full z-10 flex items-center justify-between border-b border-line bg-bg px-5">
-        <div className="flex items-center gap-4">
+      <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-line bg-bg/95 px-4 backdrop-blur md:static md:col-span-full md:h-auto md:bg-bg md:px-5 md:backdrop-blur-none">
+        <div className="flex items-center gap-3 md:gap-4">
           <Link
             href="/editor"
-            className="flex items-baseline gap-[2px] font-serif text-[19px] font-medium tracking-tight text-ink"
+            className="flex items-baseline gap-[2px] font-serif text-[17px] font-medium tracking-tight text-ink md:text-[19px]"
           >
             postabl
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent" />
           </Link>
-          <div className="h-5 w-px bg-line" />
-          <div className="font-mono text-xs tracking-wide text-ink-soft">
+          <div className="hidden h-5 w-px bg-line md:block" />
+          <div className="hidden font-mono text-xs tracking-wide text-ink-soft md:block">
             screenshot_01 <span className="text-ink-faint">/ untitled</span>
           </div>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4">
           {/* Dev-only Pro/Free toggle for testing gated features.
               Hidden in production builds — real Pro state comes from
               the server (Lemon Squeezy webhook -> users.is_pro). */}
@@ -687,7 +703,7 @@ function EditorContent() {
               onClick={toggleDevProOverride}
               aria-pressed={isPro}
               title="DEV ONLY: toggle Pro override (hidden in production)"
-              className={`flex items-center gap-2 rounded-full border px-2.5 py-1 font-mono text-[11px] tracking-wide transition-colors ${
+              className={`hidden items-center gap-2 rounded-full border px-2.5 py-1 font-mono text-[11px] tracking-wide transition-colors md:flex ${
                 isPro
                   ? "border-accent bg-accent/10 text-accent"
                   : "border-line bg-bg-alt text-ink-faint hover:text-ink"
@@ -706,12 +722,13 @@ function EditorContent() {
           )}
 
           {isPro ? (
-            <div className="rounded-full border border-line bg-bg-alt px-2.5 py-1 font-mono text-[11px] tracking-wide text-ink-faint">
-              <strong className="font-medium text-ink">∞</strong> UNLIMITED DOWNLOADS
+            <div className="rounded-full border border-line bg-bg-alt px-2 py-0.5 font-mono text-[10px] tracking-wide text-ink-faint md:px-2.5 md:py-1 md:text-[11px]">
+              <strong className="font-medium text-ink">∞</strong>
+              <span className="hidden md:inline"> UNLIMITED DOWNLOADS</span>
             </div>
           ) : (
             <div
-              className={`rounded-full border px-2.5 py-1 font-mono text-[11px] tracking-wide ${
+              className={`rounded-full border px-2 py-0.5 font-mono text-[10px] tracking-wide md:px-2.5 md:py-1 md:text-[11px] ${
                 outOfFreeDownloads
                   ? "border-accent/40 bg-accent/10 text-accent"
                   : "border-line bg-bg-alt text-ink-faint"
@@ -725,28 +742,35 @@ function EditorContent() {
               >
                 {downloadsRemaining}
               </strong>
-              /{DAILY_FREE_LIMIT}{" "}
-              {outOfFreeDownloads ? "LIMIT REACHED" : "FREE DOWNLOADS LEFT"}
+              /{DAILY_FREE_LIMIT}
+              <span className="hidden md:inline">
+                {" "}
+                {outOfFreeDownloads ? "LIMIT REACHED" : "FREE DOWNLOADS LEFT"}
+              </span>
             </div>
           )}
 
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-transparent px-3.5 py-2 text-[13px] font-medium text-ink-soft transition-all hover:bg-bg-alt hover:text-ink"
+            aria-label={screenshot ? "Replace image" : "Upload image"}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-transparent px-2.5 py-2 text-[13px] font-medium text-ink-soft transition-all hover:bg-bg-alt hover:text-ink md:px-3.5"
           >
-            {screenshot ? "Replace image" : "Upload image"} ↑
+            <span className="hidden md:inline">
+              {screenshot ? "Replace image" : "Upload image"}{" "}
+            </span>
+            <span aria-hidden>↑</span>
           </button>
           {screenshot && (
             <button
               onClick={handleClearScreenshot}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-transparent px-3.5 py-2 text-[13px] font-medium text-ink-soft transition-all hover:bg-bg-alt hover:text-ink"
+              className="hidden items-center gap-1.5 rounded-lg border border-line bg-transparent px-3.5 py-2 text-[13px] font-medium text-ink-soft transition-all hover:bg-bg-alt hover:text-ink md:inline-flex"
             >
               Clear
             </button>
           )}
           <Link
             href="/saved"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-transparent px-3.5 py-2 text-[13px] font-medium text-ink-soft transition-all hover:bg-bg-alt hover:text-ink"
+            className="hidden items-center gap-1.5 rounded-lg border border-line bg-transparent px-3.5 py-2 text-[13px] font-medium text-ink-soft transition-all hover:bg-bg-alt hover:text-ink md:inline-flex"
           >
             Saved
           </Link>
@@ -758,7 +782,7 @@ function EditorContent() {
                 ? "Upload a screenshot to save it"
                 : "Save this composition to your library"
             }
-            className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-transparent px-3.5 py-2 text-[13px] font-medium text-ink-soft transition-all hover:bg-bg-alt hover:text-ink disabled:cursor-not-allowed disabled:opacity-60"
+            className="hidden items-center gap-1.5 rounded-lg border border-line bg-transparent px-3.5 py-2 text-[13px] font-medium text-ink-soft transition-all hover:bg-bg-alt hover:text-ink disabled:cursor-not-allowed disabled:opacity-60 md:inline-flex"
           >
             {isSaving ? "Saving…" : "Save"}
           </button>
@@ -766,7 +790,7 @@ function EditorContent() {
             <button
               type="button"
               onClick={handleUpgradeClick}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-transparent px-3.5 py-2 text-[13px] font-medium text-ink-soft transition-all hover:bg-bg-alt hover:text-ink"
+              className="hidden items-center gap-1.5 rounded-lg border border-line bg-transparent px-3.5 py-2 text-[13px] font-medium text-ink-soft transition-all hover:bg-bg-alt hover:text-ink md:inline-flex"
             >
               Upgrade to Pro
             </button>
@@ -779,7 +803,7 @@ function EditorContent() {
                 ? "Daily free limit reached — upgrade to Pro or come back tomorrow"
                 : undefined
             }
-            className="inline-flex items-center gap-1.5 rounded-lg bg-ink px-3.5 py-2 text-[13px] font-medium text-bg transition-all hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
+            className="hidden items-center gap-1.5 rounded-lg bg-ink px-3.5 py-2 text-[13px] font-medium text-bg transition-all hover:bg-black disabled:cursor-not-allowed disabled:opacity-60 md:inline-flex"
           >
             {isExporting
               ? "Exporting…"
@@ -796,6 +820,7 @@ function EditorContent() {
                 onClick={() => setUserMenuOpen((v) => !v)}
                 aria-haspopup="menu"
                 aria-expanded={userMenuOpen}
+                aria-label={`Account menu — ${me.name}`}
                 title={`${me.name} — ${me.email}`}
                 className="flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-full bg-accent text-xs font-medium uppercase text-white transition-all hover:ring-2 hover:ring-accent/30"
               >
@@ -813,6 +838,41 @@ function EditorContent() {
                     <div className="truncate font-mono text-[11px] text-ink-faint">
                       {me.email}
                     </div>
+                  </div>
+                  {/* Mobile-only quick actions — these live in the top
+                      bar on desktop but are hidden there on mobile to
+                      keep the bar from overflowing. */}
+                  <div className="md:hidden">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        void handleSave();
+                      }}
+                      disabled={isSaving || !screenshot}
+                      className="block w-full px-3.5 py-2.5 text-left text-[13px] text-ink-soft transition-colors hover:bg-bg-alt hover:text-ink disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {isSaving ? "Saving…" : "Save image"}
+                    </button>
+                    <Link
+                      href="/saved"
+                      className="block w-full px-3.5 py-2.5 text-left text-[13px] text-ink-soft transition-colors hover:bg-bg-alt hover:text-ink"
+                    >
+                      Your saved
+                    </Link>
+                    {!isPro && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUserMenuOpen(false);
+                          handleUpgradeClick();
+                        }}
+                        className="block w-full px-3.5 py-2.5 text-left text-[13px] font-medium text-accent transition-colors hover:bg-accent/5"
+                      >
+                        Upgrade to Pro
+                      </button>
+                    )}
+                    <div className="border-t border-line" />
                   </div>
                   <button
                     type="button"
@@ -835,8 +895,9 @@ function EditorContent() {
         </div>
       </header>
 
-      {/* LEFT SIDEBAR */}
-      <aside className="overflow-y-auto border-r border-line bg-bg py-5">
+      {/* LEFT SIDEBAR — column 1 on desktop; stacks below the canvas
+          on mobile (order-2 puts it after the order-1 canvas). */}
+      <aside className="order-2 border-t border-line bg-bg py-4 md:order-none md:overflow-y-auto md:border-t-0 md:border-r md:py-5">
         <div className="mb-5 border-b border-line px-5 pb-5">
           <div className="mb-3.5 flex items-center justify-between font-mono text-[10px] uppercase tracking-wider text-ink-faint">
             <span>Backgrounds</span>
@@ -894,40 +955,49 @@ function EditorContent() {
             Window style
           </div>
           <div className="grid grid-cols-3 gap-2">
-            <div
+            <button
+              type="button"
               onClick={() => setWindowStyle("light")}
+              aria-label="Light window chrome"
+              aria-pressed={windowStyle === "light"}
               title="Light — macOS-style title bar with traffic-light dots and URL field"
-              className={`relative flex aspect-[16/10] cursor-pointer flex-col overflow-hidden rounded-lg border-2 bg-white transition-all hover:scale-105 ${
+              className={`relative flex aspect-[16/10] cursor-pointer flex-col overflow-hidden rounded-lg border-2 bg-white p-0 transition-all hover:scale-105 ${
                 windowStyle === "light" ? "border-ink" : "border-transparent"
               }`}
             >
               <PresetDot active={windowStyle === "light"} />
-              <div className="flex h-[30%] items-center gap-0.5 bg-[#f5f5f5] pl-1">
+              <div className="flex h-[30%] w-full items-center gap-0.5 bg-[#f5f5f5] pl-1">
                 <span className="h-1 w-1 rounded-full bg-[#ff5f57]" />
                 <span className="h-1 w-1 rounded-full bg-[#febc2e]" />
                 <span className="h-1 w-1 rounded-full bg-[#28c840]" />
               </div>
-            </div>
-            <div
+            </button>
+            <button
+              type="button"
               onClick={() => setWindowStyle("dark")}
+              aria-label="Dark window chrome"
+              aria-pressed={windowStyle === "dark"}
               title="Dark — same chrome on a dark title bar"
-              className={`relative flex aspect-[16/10] cursor-pointer flex-col overflow-hidden rounded-lg border-2 bg-[#1a1a1a] transition-all hover:scale-105 ${
+              className={`relative flex aspect-[16/10] cursor-pointer flex-col overflow-hidden rounded-lg border-2 bg-[#1a1a1a] p-0 transition-all hover:scale-105 ${
                 windowStyle === "dark" ? "border-ink" : "border-transparent"
               }`}
             >
               <PresetDot active={windowStyle === "dark"} />
-              <div className="h-[30%] bg-[#2a2a2a]" />
-            </div>
-            <div
+              <div className="h-[30%] w-full bg-[#2a2a2a]" />
+            </button>
+            <button
+              type="button"
               onClick={() => setWindowStyle("none")}
+              aria-label="No window chrome"
+              aria-pressed={windowStyle === "none"}
               title="None — no title bar; the screenshot fills the frame edge to edge"
-              className={`relative flex aspect-[16/10] cursor-pointer items-center justify-center overflow-hidden rounded-lg border-2 bg-white transition-all hover:scale-105 ${
+              className={`relative flex aspect-[16/10] cursor-pointer items-center justify-center overflow-hidden rounded-lg border-2 bg-white p-0 transition-all hover:scale-105 ${
                 windowStyle === "none" ? "border-ink" : "border-transparent"
               }`}
             >
               <PresetDot active={windowStyle === "none"} />
               <span className="font-mono text-[10px] text-[#999]">none</span>
-            </div>
+            </button>
           </div>
         </div>
 
@@ -970,8 +1040,9 @@ function EditorContent() {
         </div>
       </aside>
 
-      {/* CANVAS */}
-      <main className="canvas-grid relative flex items-center justify-center overflow-auto p-10">
+      {/* CANVAS — first content under the header on mobile (order-1)
+          so the screenshot is the first thing the user sees on a phone. */}
+      <main className="canvas-grid order-1 relative flex min-h-[55vh] items-center justify-center p-4 md:order-none md:min-h-0 md:overflow-auto md:p-10">
 
         <div className="relative">
           {screenshot && (
@@ -992,16 +1063,16 @@ function EditorContent() {
             ...bg.style,
             padding: `${padding}px`,
             aspectRatio: effectiveRatio,
-            // The canvas takes the smallest of:
-            //   - a hard cap (1100px) so on huge monitors it doesn't
-            //     dwarf the rest of the UI
-            //   - what the viewport height can fit at the chosen ratio
-            //     (otherwise tall portrait canvases overflow downward)
-            //   - 92% of the available width between the two sidebars
-            //     so it scales up on wide displays but doesn't crowd
-            //     the controls. The 660px subtracts both sidebars
-            //     (260+320) plus the main content padding.
-            width: `min(1100px, calc((100vh - 180px) * ${effectiveRatio}), calc((100vw - 660px) * 0.92))`,
+            // Canvas width has two regimes:
+            //   Desktop — smallest of (1100px cap, what viewport
+            //     height fits at the chosen ratio, 92% of the space
+            //     between the two sidebars: 100vw - 260 - 320 - slack).
+            //   Mobile — fit the viewport width minus a small inset,
+            //     bounded by ~48vh so even portrait ratios still leave
+            //     room for the controls below.
+            width: isMobile
+              ? `min(calc(100vw - 32px), calc(48vh * ${effectiveRatio}))`
+              : `min(1100px, calc((100vh - 180px) * ${effectiveRatio}), calc((100vw - 660px) * 0.92))`,
           }}
         >
           <div
@@ -1125,8 +1196,9 @@ function EditorContent() {
         </div>
       </main>
 
-      {/* RIGHT PANEL */}
-      <aside className="overflow-y-auto border-l border-line bg-bg p-5">
+      {/* RIGHT PANEL — column 3 on desktop; stacks last on mobile
+          (order-3). pb-24 reserves space for the fixed Download bar. */}
+      <aside className="order-3 border-t border-line bg-bg p-4 pb-24 md:order-none md:border-t-0 md:overflow-y-auto md:border-l md:p-5 md:pb-5">
         <div className="mb-5 flex items-center justify-between border-b border-line pb-5">
           <div className="font-serif text-xl font-medium tracking-tight">
             Properties
@@ -1391,6 +1463,26 @@ function EditorContent() {
           )}
         </div>
       </aside>
+
+      {/* MOBILE EXPORT BAR — sticky to the bottom of the viewport so
+          Download is always within thumb's reach. The right panel
+          reserves pb-24 above to keep its last section visible. */}
+      <div
+        className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-bg/95 px-4 py-3 backdrop-blur md:hidden"
+        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+      >
+        <button
+          onClick={handleDownload}
+          disabled={isExporting || outOfFreeDownloads}
+          className="flex w-full items-center justify-center gap-2 rounded-[10px] bg-ink px-4 py-3.5 text-sm font-medium text-bg transition-all hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isExporting
+            ? "Exporting…"
+            : outOfFreeDownloads
+              ? "Limit reached — upgrade"
+              : "Download ↓"}
+        </button>
+      </div>
     </div>
   );
 }

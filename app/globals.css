@@ -9,7 +9,10 @@
     --panel: #ffffff;
     --ink: #1a1a1a;
     --ink-soft: #555;
-    --ink-faint: #8a8680;
+    /* Was #8a8680 (~3.4:1 on cream — failed WCAG AA). Bumped to
+       #6f6b65 (~5.4:1) so the muted meta text used across the app
+       passes AA for normal-weight body copy. */
+    --ink-faint: #6f6b65;
     --line: #d9d4c7;
     --line-strong: #d0cabb;
     --accent: #d94f2e;
@@ -30,6 +33,22 @@
 
   em {
     font-style: italic;
+  }
+
+  /* Global focus ring — only renders for keyboard navigation
+     (`:focus-visible`), so mouse/touch users never see it but
+     keyboard users always get a visible target. Inputs already
+     have their own focus styling; we exempt them so we don't
+     paint a double ring. */
+  button:focus-visible,
+  a:focus-visible,
+  [role="button"]:focus-visible,
+  [tabindex]:focus-visible,
+  select:focus-visible,
+  summary:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+    border-radius: 4px;
   }
 }
 
@@ -128,4 +147,29 @@
   .animate-toast-in    { animation: toast-in 200ms ease-out; }
   .animate-fade-in     { animation: fade-in 150ms ease-out; }
   .animate-confirm-in  { animation: confirm-in 180ms ease-out; }
+}
+
+/* Respect the OS "reduce motion" preference. Triggered only when the
+   user has explicitly opted in via accessibility settings — for
+   everyone else, nothing here applies. */
+@media (prefers-reduced-motion: reduce) {
+  /* Kill the named animations the app ships with. */
+  .animate-marquee,
+  .animate-pulse-dot,
+  .animate-toast-in,
+  .animate-fade-in,
+  .animate-confirm-in {
+    animation: none !important;
+  }
+  /* Cap transitions and scroll smoothing globally. !important is needed
+     because Tailwind's transition-all etc. set inline transition props
+     at higher specificity. */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
