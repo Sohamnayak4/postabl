@@ -53,7 +53,7 @@ export default function LandingPage() {
             Sign in
           </Link>
           <Link
-            href="/signin"
+            href="/editor"
             className="inline-flex items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-[13px] font-medium text-bg transition-all hover:-translate-y-[1px] hover:bg-black md:px-[18px] md:py-[9px] md:text-sm"
           >
             Start free →
@@ -79,7 +79,7 @@ export default function LandingPage() {
         </p>
         <div className="mb-10 flex flex-wrap items-center gap-3 md:mb-[60px]">
           <Link
-            href="/signin"
+            href="/editor"
             className="inline-flex items-center gap-1.5 rounded-full bg-ink px-6 py-3 text-sm font-medium text-bg transition-all hover:-translate-y-[1px] hover:bg-black md:px-7 md:py-[14px] md:text-[15px]"
           >
             Get started →
@@ -344,7 +344,7 @@ export default function LandingPage() {
               ))}
             </ul>
             <Link
-              href="/signin"
+              href="/editor"
               className="flex w-full items-center justify-center rounded-full border border-line bg-transparent px-4 py-3.5 text-sm font-medium text-ink"
             >
               Start free

@@ -4,8 +4,14 @@ import { jwtVerify } from "jose";
 // Routes behind auth. Anything matched here requires a valid session cookie;
 // unauthenticated visits get kicked to /signin with ?next= preserving where
 // they were going.
+//
+// /editor is intentionally NOT gated: anonymous visitors can use the tool
+// end-to-end with 2 free downloads/day (counted in localStorage). The
+// editor page itself shows a sign-in prompt when the user tries to
+// Download, Save, or use a Pro-only feature — that's where signup
+// intent peaks, so we capture them there instead of at the front door.
 export const config = {
-  matcher: ["/editor/:path*", "/saved/:path*"],
+  matcher: ["/saved/:path*"],
 };
 
 const SESSION_COOKIE = "postabl_session";

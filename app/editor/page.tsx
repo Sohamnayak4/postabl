@@ -18,6 +18,11 @@ import {
   saveScreenshot,
 } from "@/lib/screenshot-store";
 import { buildCheckoutUrl } from "@/lib/checkout";
+import {
+  clearAllLocalData,
+  getLastUserId,
+  setLastUserId,
+} from "@/lib/local-data";
 import { useNotify } from "@/components/notify";
 
 type MeUser =
@@ -328,6 +333,46 @@ function EditorContent() {
     return () => mq.removeEventListener("change", update);
   }, []);
 
+  // Anonymous users land here, customise their screenshot, then click
+  // Download → they're sent to /signin. We stash their state to LS
+  // first so this effect can hydrate it back when they return. Done
+  // once on mount; we delete the stash immediately after restoring so
+  // a manual refresh doesn't keep overwriting fresh tweaks.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem("postabl:editor-stash");
+      if (!raw) return;
+      const stash = JSON.parse(raw) as Partial<{
+        bgId: string;
+        padding: number;
+        radius: number;
+        paddingPreset: PaddingPreset;
+        shadowPreset: ShadowPreset;
+        ratio: RatioPreset;
+        innerGlow: boolean;
+        format: string;
+        scale: string;
+        windowStyle: "light" | "dark" | "none";
+        urlText: string;
+      }>;
+      if (typeof stash.bgId === "string") setBgId(stash.bgId);
+      if (typeof stash.padding === "number") setPadding(stash.padding);
+      if (typeof stash.radius === "number") setRadius(stash.radius);
+      if (stash.paddingPreset) setPaddingPreset(stash.paddingPreset);
+      if (stash.shadowPreset) setShadowPreset(stash.shadowPreset);
+      if (stash.ratio) setRatio(stash.ratio);
+      if (typeof stash.innerGlow === "boolean") setInnerGlow(stash.innerGlow);
+      if (typeof stash.format === "string") setFormat(stash.format);
+      if (typeof stash.scale === "string") setScale(stash.scale);
+      if (stash.windowStyle) setWindowStyle(stash.windowStyle);
+      if (typeof stash.urlText === "string") setUrlText(stash.urlText);
+      window.localStorage.removeItem("postabl:editor-stash");
+    } catch {
+      // Malformed stash — ignore and move on.
+    }
+  }, []);
+
   // Restore "URL bar is editable" tip dismissal across sessions. Default
   // is dismissed=true to avoid an SSR-vs-client flash; we only un-dismiss
   // after confirming the user hasn't already closed it.
@@ -393,13 +438,35 @@ function EditorContent() {
   const isNarrowWindow = windowAspectRatio < 1;
 
   // Hydrate current user from the session cookie.
+  //
+  // ALSO: account-switch guard. localStorage + IndexedDB are
+  // origin-scoped, not user-scoped, so without this check Account B
+  // would see Account A's saved library / current screenshot / quota
+  // counter after signing in. We compare the /me response's user.id
+  // against the last-seen id and wipe local state on mismatch.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const res = await fetch("/api/auth/me", { cache: "no-store" });
         const data = await res.json();
-        if (!cancelled) setMe(data.user);
+        if (cancelled) return;
+
+        const newId: string | null = data.user?.id ?? null;
+        const lastId = getLastUserId();
+        // Mismatch == account switch (covers both A→B sign-in and
+        // signed-out-but-someone-else-just-signed-in cases).
+        if (lastId && newId && lastId !== newId) {
+          await clearAllLocalData();
+          // Wipe relevant React state too so we don't briefly render
+          // the previous user's screenshot while IDB is being deleted.
+          setScreenshot(null);
+          setImgRatio(null);
+          setDownloadsUsed(0);
+          if (IS_DEV) setDevProOverride(false);
+        }
+        setLastUserId(newId);
+        setMe(data.user);
       } catch {
         if (!cancelled) setMe(null);
       } finally {
@@ -432,10 +499,72 @@ function EditorContent() {
     } catch {
       // ignore — cookie will still be cleared on next request
     }
+    // Wipe per-user local state so the next person on this device
+    // (anon or otherwise) can't see this user's saved library / current
+    // screenshot / quota counter. See lib/local-data.ts for rationale.
+    await clearAllLocalData();
     setMe(null);
     setUserMenuOpen(false);
+    setScreenshot(null);
+    setImgRatio(null);
+    setDownloadsUsed(0);
+    if (IS_DEV) setDevProOverride(false);
     router.push("/signin");
     router.refresh();
+  }
+
+  // ------------------------------------------------------------------
+  // Anonymous-user gating
+  //
+  // /editor is open to everyone — uploading and styling work without a
+  // session. Sign-in is only required at the point of value capture:
+  // Download, Save to library, and Pro-only features. When we redirect
+  // an anon user to /signin we stash the current editor state so it's
+  // waiting for them when they come back, otherwise the round-trip
+  // would lose all their tweaks and they'd ragequit.
+  // ------------------------------------------------------------------
+  const STASH_KEY = "postabl:editor-stash";
+
+  function persistEditorStash() {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(
+        STASH_KEY,
+        JSON.stringify({
+          bgId,
+          padding,
+          radius,
+          paddingPreset,
+          shadowPreset,
+          ratio,
+          innerGlow,
+          format,
+          scale,
+          windowStyle,
+          urlText,
+        })
+      );
+    } catch {
+      // Quota full or LS blocked — proceed with redirect anyway.
+    }
+  }
+
+  async function requireSignedIn(opts: {
+    title: string;
+    description: string;
+    confirmLabel?: string;
+  }): Promise<boolean> {
+    if (me) return true;
+    const ok = await notify.confirm({
+      title: opts.title,
+      description: opts.description,
+      confirmLabel: opts.confirmLabel ?? "Sign in with Google →",
+      cancelLabel: "Not now",
+    });
+    if (!ok) return false;
+    persistEditorStash();
+    window.location.href = "/signin?next=/editor";
+    return false;
   }
 
   function handleUpgradeClick() {
@@ -599,6 +728,16 @@ function EditorContent() {
   async function handleDownload() {
     const node = frameRef.current;
     if (!node) return;
+    // Anonymous-user signin gate. Anon users get a polished confirm
+    // explaining the value exchange before the OAuth round-trip.
+    if (!me) {
+      await requireSignedIn({
+        title: "Sign in to download",
+        description:
+          "Sign in with Google to download your screenshot — free, no card needed. Your work stays put while you sign in.",
+      });
+      return;
+    }
     if (!isPro && downloadsRemaining <= 0) {
       notify.toast(
         `Daily limit reached (${DAILY_FREE_LIMIT}). Upgrade to Pro for unlimited exports.`,
@@ -654,6 +793,16 @@ function EditorContent() {
     if (!screenshot) {
       notify.toast("Upload a screenshot first, then save.", {
         tone: "error",
+      });
+      return;
+    }
+    // Anonymous-user signin gate. Saved library is per-user, so we
+    // need an account before any Save can land.
+    if (!me) {
+      await requireSignedIn({
+        title: "Sign in to save",
+        description:
+          "Sign in with Google to add this to your library and access it from any device. Your work is preserved through the sign-in.",
       });
       return;
     }
@@ -751,34 +900,38 @@ function EditorContent() {
             </button>
           )}
 
-          {isPro ? (
-            <div className="rounded-full border border-line bg-bg-alt px-2 py-0.5 font-mono text-[10px] tracking-wide text-ink-faint md:px-2.5 md:py-1 md:text-[11px]">
-              <strong className="font-medium text-ink">∞</strong>
-              <span className="hidden md:inline"> UNLIMITED DOWNLOADS</span>
-            </div>
-          ) : (
-            <div
-              className={`rounded-full border px-2 py-0.5 font-mono text-[10px] tracking-wide md:px-2.5 md:py-1 md:text-[11px] ${
-                outOfFreeDownloads
-                  ? "border-accent/40 bg-accent/10 text-accent"
-                  : "border-line bg-bg-alt text-ink-faint"
-              }`}
-              title={`You've used ${downloadsUsed} of ${DAILY_FREE_LIMIT} free downloads today.`}
-            >
-              <strong
-                className={`font-medium ${
-                  outOfFreeDownloads ? "text-accent" : "text-ink"
+          {/* Downloads pill is only meaningful for signed-in users —
+              anon users can't consume downloads without first signing
+              in, so the counter would just be confusing. */}
+          {me &&
+            (isPro ? (
+              <div className="rounded-full border border-line bg-bg-alt px-2 py-0.5 font-mono text-[10px] tracking-wide text-ink-faint md:px-2.5 md:py-1 md:text-[11px]">
+                <strong className="font-medium text-ink">∞</strong>
+                <span className="hidden md:inline"> UNLIMITED DOWNLOADS</span>
+              </div>
+            ) : (
+              <div
+                className={`rounded-full border px-2 py-0.5 font-mono text-[10px] tracking-wide md:px-2.5 md:py-1 md:text-[11px] ${
+                  outOfFreeDownloads
+                    ? "border-accent/40 bg-accent/10 text-accent"
+                    : "border-line bg-bg-alt text-ink-faint"
                 }`}
+                title={`You've used ${downloadsUsed} of ${DAILY_FREE_LIMIT} free downloads today.`}
               >
-                {downloadsRemaining}
-              </strong>
-              /{DAILY_FREE_LIMIT}
-              <span className="hidden md:inline">
-                {" "}
-                {outOfFreeDownloads ? "LIMIT REACHED" : "FREE DOWNLOADS LEFT"}
-              </span>
-            </div>
-          )}
+                <strong
+                  className={`font-medium ${
+                    outOfFreeDownloads ? "text-accent" : "text-ink"
+                  }`}
+                >
+                  {downloadsRemaining}
+                </strong>
+                /{DAILY_FREE_LIMIT}
+                <span className="hidden md:inline">
+                  {" "}
+                  {outOfFreeDownloads ? "LIMIT REACHED" : "FREE DOWNLOADS LEFT"}
+                </span>
+              </div>
+            ))}
 
           <button
             onClick={() => fileInputRef.current?.click()}
@@ -816,7 +969,12 @@ function EditorContent() {
           >
             {isSaving ? "Saving…" : "Save"}
           </button>
-          {!isPro && (
+          {/* Upgrade button needs an account before it does anything
+              useful (handleUpgradeClick would just redirect to /signin
+              anyway) — hide it for anon users so the top bar stays
+              uncluttered and the sign-in CTA in the avatar slot does
+              the work. */}
+          {me && !isPro && (
             <button
               type="button"
               onClick={handleUpgradeClick}
@@ -915,12 +1073,19 @@ function EditorContent() {
               )}
             </div>
           ) : (
-            <Link
-              href="/signin"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-transparent px-3.5 py-2 text-[13px] font-medium text-ink-soft transition-all hover:bg-bg-alt hover:text-ink"
+            // Anon users only — clicking this stashes their current
+            // editor state to LS first so it's waiting for them when
+            // they return after Google OAuth.
+            <button
+              type="button"
+              onClick={() => {
+                persistEditorStash();
+                window.location.href = "/signin?next=/editor";
+              }}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-ink px-3.5 py-2 text-[13px] font-medium text-bg transition-all hover:bg-black"
             >
               Sign in
-            </Link>
+            </button>
           )}
         </div>
       </header>
@@ -1054,6 +1219,14 @@ function EditorContent() {
                   title={isPro ? p.label : `${p.label} — Pro only`}
                   onClick={() => {
                     if (!isPro) {
+                      if (!me) {
+                        void requireSignedIn({
+                          title: "Sign in to use patterns",
+                          description:
+                            "Pattern backgrounds are part of Pro. Sign in with Google first — we'll keep your work — then unlock Pro for $9.99/year.",
+                        });
+                        return;
+                      }
                       confirmAndUpgrade("Pattern backgrounds");
                       return;
                     }
@@ -1440,6 +1613,14 @@ function EditorContent() {
                   title={locked ? `${s.hint} (Pro-only)` : s.hint}
                   onClick={() => {
                     if (locked) {
+                      if (!me) {
+                        void requireSignedIn({
+                          title: "Sign in for 4× exports",
+                          description:
+                            "4× retina output is part of Pro. Sign in with Google first — we'll keep your work — then unlock Pro for $9.99/year.",
+                        });
+                        return;
+                      }
                       confirmAndUpgrade("4× retina exports");
                       return;
                     }

@@ -20,6 +20,11 @@ import {
   deleteSavedImage,
   listSavedImages,
 } from "@/lib/saved-images";
+import {
+  clearAllLocalData,
+  getLastUserId,
+  setLastUserId,
+} from "@/lib/local-data";
 import { useNotify } from "@/components/notify";
 
 type MeUser =
@@ -111,13 +116,28 @@ export default function SavedPage() {
     };
   }, [images]);
 
+  // Hydrate /me + account-switch guard. Local IDB/localStorage are
+  // origin-scoped, so if Account B navigates here after Account A
+  // signed out, they'd inherit A's library. Wipe on user mismatch.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const res = await fetch("/api/auth/me", { cache: "no-store" });
         const data = await res.json();
-        if (!cancelled) setMe(data.user);
+        if (cancelled) return;
+
+        const newId: string | null = data.user?.id ?? null;
+        const lastId = getLastUserId();
+        if (lastId && newId && lastId !== newId) {
+          await clearAllLocalData();
+          setImages([]);
+          setImageUrls({});
+          setDownloadsUsed(0);
+          if (IS_DEV) setDevProOverride(false);
+        }
+        setLastUserId(newId);
+        setMe(data.user);
       } catch {
         if (!cancelled) setMe(null);
       } finally {
@@ -149,8 +169,14 @@ export default function SavedPage() {
     } catch {
       // ignore
     }
+    // Same rationale as the editor's handleSignout — see lib/local-data.ts.
+    await clearAllLocalData();
     setMe(null);
     setUserMenuOpen(false);
+    setImages([]);
+    setImageUrls({});
+    setDownloadsUsed(0);
+    if (IS_DEV) setDevProOverride(false);
     router.push("/signin");
     router.refresh();
   }
