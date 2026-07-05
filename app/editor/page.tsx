@@ -1240,7 +1240,7 @@ function EditorContent() {
             )}
         <div
           ref={frameRef}
-          className="flex max-w-full items-center justify-center rounded-2xl shadow-canvas transition-all"
+          className="relative flex max-w-full items-center justify-center rounded-2xl shadow-canvas transition-all"
           style={{
             ...bg.style,
             padding: `${padding}px`,
@@ -1380,12 +1380,14 @@ function EditorContent() {
                 </div>
               </div>
             )}
-            {/* Brand Kit handle badge — sits inside the inner window
-                (which has position:relative) so it overlays the
-                screenshot and is captured by html-to-image at export.
-                Only renders when the kit has a non-empty handle. */}
-            {brandKit?.handle && <EditorBrandBadge kit={brandKit} />}
           </div>
+          {/* Brand Kit handle badge — anchored to the padded background
+              frame (frameRef, position:relative), NOT the inner window,
+              so it overlays the background in the chosen corner instead of
+              the screenshot — and isn't clipped by the window's
+              overflow-hidden. Still inside frameRef so html-to-image
+              captures it at export. Renders only with a non-empty handle. */}
+          {brandKit?.handle && <EditorBrandBadge kit={brandKit} />}
         </div>
         </div>
       </main>
