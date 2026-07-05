@@ -315,6 +315,17 @@ export default function SavedPage() {
                       {me.email}
                     </div>
                   </div>
+                  <Link
+                    href="/brand-kit"
+                    className="flex w-full items-center justify-between px-3.5 py-2.5 text-left text-[13px] text-ink-soft transition-colors hover:bg-bg-alt hover:text-ink"
+                  >
+                    <span>Brand kit</span>
+                    {!isPro && (
+                      <span className="rounded-full bg-bg-alt px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-ink-faint">
+                        Pro
+                      </span>
+                    )}
+                  </Link>
                   <button
                     type="button"
                     onClick={handleSignout}

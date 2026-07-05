@@ -32,6 +32,11 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_id text;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_status text;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS current_period_end timestamptz;
 
+-- Brand Kit (Pro feature) — per-user defaults + handle badge that
+-- auto-applies on new editor sessions. JSONB keeps schema evolution
+-- cheap; the server validates shape before writing.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS brand_kit jsonb;
+
 CREATE INDEX IF NOT EXISTS users_email_idx ON users (email);
 CREATE UNIQUE INDEX IF NOT EXISTS users_provider_sub_idx ON users (provider, provider_sub);
 CREATE INDEX IF NOT EXISTS users_subscription_id_idx ON users (subscription_id);

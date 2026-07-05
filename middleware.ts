@@ -11,7 +11,7 @@ import { jwtVerify } from "jose";
 // Download, Save, or use a Pro-only feature — that's where signup
 // intent peaks, so we capture them there instead of at the front door.
 export const config = {
-  matcher: ["/saved/:path*"],
+  matcher: ["/saved/:path*", "/brand-kit/:path*"],
 };
 
 const SESSION_COOKIE = "postabl_session";

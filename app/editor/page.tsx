@@ -23,6 +23,16 @@ import {
   getLastUserId,
   setLastUserId,
 } from "@/lib/local-data";
+import {
+  BACKGROUNDS,
+  PATTERNS,
+  findBackground,
+} from "@/lib/backgrounds";
+import {
+  type BrandKit,
+  type BadgePosition,
+  loadBrandKit,
+} from "@/lib/brand-kit";
 import { useNotify } from "@/components/notify";
 
 type MeUser =
@@ -37,122 +47,6 @@ type MeUser =
   | null;
 
 const IS_DEV = process.env.NODE_ENV === "development";
-
-type Background = {
-  id: string;
-  label: string;
-  style: React.CSSProperties;
-};
-
-const BACKGROUNDS: Background[] = [
-  {
-    id: "peach",
-    label: "Peach",
-    style: {
-      background:
-        "radial-gradient(circle at 30% 20%, #fce4b6, transparent 50%), radial-gradient(circle at 80% 80%, #e8a598, transparent 50%), linear-gradient(135deg, #f4c896, #d98a7a)",
-    },
-  },
-  { id: "forest", label: "Forest", style: { background: "linear-gradient(135deg, #2d3b3a, #0f1816)" } },
-  { id: "stone", label: "Stone", style: { background: "linear-gradient(135deg, #e8e3d8, #c9c2b0)" } },
-  { id: "noir", label: "Noir", style: { background: "#1a1a1a" } },
-  { id: "paper", label: "Paper", style: { background: "#f0ede5" } },
-  { id: "ember", label: "Ember", style: { background: "linear-gradient(135deg, #d94f2e, #b33a1e)" } },
-  { id: "moss", label: "Moss", style: { background: "linear-gradient(135deg, #4a5d4e, #2d3b3a)" } },
-  {
-    id: "stripes",
-    label: "Stripes",
-    style: {
-      background:
-        "repeating-linear-gradient(45deg, #e8e3d8, #e8e3d8 10px, #d9d4c7 10px, #d9d4c7 11px)",
-    },
-  },
-  {
-    id: "spotlight",
-    label: "Spotlight",
-    style: { background: "radial-gradient(circle at 50% 50%, #fff 0%, #c9c2b0 100%)" },
-  },
-  { id: "sand", label: "Sand", style: { background: "linear-gradient(180deg, #e5deca, #c1b799)" } },
-  { id: "midnight", label: "Midnight", style: { background: "linear-gradient(135deg, #16213e, #0f3460)" } },
-
-  // Light & pastel —
-  { id: "blush", label: "Blush", style: { background: "linear-gradient(135deg, #fce1e4, #f8c7cc)" } },
-  { id: "mint", label: "Mint", style: { background: "linear-gradient(135deg, #d9ece2, #bfddcf)" } },
-  { id: "sky", label: "Sky", style: { background: "linear-gradient(135deg, #dbe8f4, #a9c5e2)" } },
-  { id: "lilac", label: "Lilac", style: { background: "linear-gradient(135deg, #e8e0ed, #cfc0db)" } },
-  { id: "butter", label: "Butter", style: { background: "linear-gradient(135deg, #fbf0d0, #f2dca0)" } },
-  { id: "fog", label: "Fog", style: { background: "linear-gradient(180deg, #eceff2, #c9ccd1)" } },
-
-  // Warm —
-  { id: "coral", label: "Coral", style: { background: "linear-gradient(135deg, #ffc2a8, #ff8b6b)" } },
-  { id: "amber", label: "Amber", style: { background: "linear-gradient(135deg, #fbe0a2, #d99b4e)" } },
-  { id: "desert", label: "Desert", style: { background: "linear-gradient(135deg, #eac6a1, #c48758)" } },
-  { id: "rose", label: "Rose", style: { background: "linear-gradient(135deg, #eba1ad, #c4566b)" } },
-  { id: "terracotta", label: "Terracotta", style: { background: "linear-gradient(135deg, #c97b5a, #8b3a1e)" } },
-
-  // Cool / earthy —
-  { id: "sage", label: "Sage", style: { background: "linear-gradient(135deg, #b5c3a5, #7d8b6f)" } },
-  { id: "ocean", label: "Ocean", style: { background: "linear-gradient(135deg, #4a8fa8, #1f3d5a)" } },
-  { id: "lagoon", label: "Lagoon", style: { background: "linear-gradient(135deg, #7ab8a8, #3b6e68)" } },
-  { id: "denim", label: "Denim", style: { background: "linear-gradient(135deg, #5a7aa0, #2d4565)" } },
-
-  // Dark / moody —
-  { id: "slate", label: "Slate", style: { background: "linear-gradient(135deg, #b4b8c0, #6e737d)" } },
-  { id: "graphite", label: "Graphite", style: { background: "linear-gradient(135deg, #3a3a3a, #151515)" } },
-  { id: "plum", label: "Plum", style: { background: "linear-gradient(135deg, #6b4a72, #2e1a36)" } },
-  { id: "wine", label: "Wine", style: { background: "linear-gradient(135deg, #6e2a3a, #3a1520)" } },
-
-  // Mesh gradients —
-  {
-    id: "sunset",
-    label: "Sunset",
-    style: {
-      background:
-        "radial-gradient(circle at 20% 20%, #ffd5a8, transparent 55%), radial-gradient(circle at 80% 30%, #ff9a8b, transparent 55%), radial-gradient(circle at 60% 80%, #a66ea0, transparent 55%), linear-gradient(135deg, #ffb088, #c96a7d)",
-    },
-  },
-  {
-    id: "aurora",
-    label: "Aurora",
-    style: {
-      background:
-        "radial-gradient(circle at 25% 30%, #9fd9c9, transparent 55%), radial-gradient(circle at 75% 20%, #6a9fd1, transparent 55%), radial-gradient(circle at 60% 80%, #9d7fd1, transparent 55%), linear-gradient(135deg, #4a6b8c, #2a3f5a)",
-    },
-  },
-  {
-    id: "citrus",
-    label: "Citrus",
-    style: {
-      background:
-        "radial-gradient(circle at 30% 30%, #fff4a3, transparent 55%), radial-gradient(circle at 80% 70%, #c7d86b, transparent 55%), linear-gradient(135deg, #f6e38e, #9fb04e)",
-    },
-  },
-  {
-    id: "berry",
-    label: "Berry",
-    style: {
-      background:
-        "radial-gradient(circle at 20% 30%, #f0a9c2, transparent 55%), radial-gradient(circle at 80% 70%, #9a5ba0, transparent 55%), linear-gradient(135deg, #c86f91, #5a2b5c)",
-    },
-  },
-  {
-    id: "twilight",
-    label: "Twilight",
-    style: {
-      background:
-        "radial-gradient(circle at 25% 80%, #d94f2e40, transparent 55%), radial-gradient(circle at 75% 25%, #4a6b8c60, transparent 55%), linear-gradient(135deg, #1a1a2e, #0d1020)",
-    },
-  },
-
-  {
-    id: "dashed",
-    label: "Custom",
-    style: {
-      background: "linear-gradient(135deg, #fafafa, #e5e5e5)",
-      border: "1px dashed var(--line-strong)",
-    },
-  },
-];
 
 const PADDING_PRESETS = ["S", "M", "L", "XL"] as const;
 type PaddingPreset = (typeof PADDING_PRESETS)[number];
@@ -191,36 +85,6 @@ const FIXED_RATIO_NUMBERS: Record<
 };
 const DEFAULT_NATURAL_RATIO = 16 / 9; // placeholder shape pre-upload
 
-// Pattern backgrounds (Pro-gated) — same shape as BACKGROUNDS so they can
-// be set via setBgId.
-const PATTERNS: Background[] = [
-  {
-    id: "pattern-dots",
-    label: "Dots",
-    style: {
-      backgroundImage:
-        "radial-gradient(circle, #c9c2b0 1px, transparent 1px)",
-      backgroundSize: "8px 8px",
-      backgroundColor: "#f0ede5",
-    },
-  },
-  {
-    id: "pattern-lines-v",
-    label: "Vertical lines",
-    style: {
-      background:
-        "repeating-linear-gradient(90deg, #f0ede5, #f0ede5 8px, #e4e0d4 8px, #e4e0d4 9px)",
-    },
-  },
-  {
-    id: "pattern-lines-diag",
-    label: "Diagonal lines",
-    style: {
-      background:
-        "repeating-linear-gradient(45deg, #f0ede5, #f0ede5 4px, #e4e0d4 4px, #e4e0d4 5px)",
-    },
-  },
-];
 const FORMATS = [
   { id: "PNG", label: "PNG", size: "Lossless" },
   { id: "JPG", label: "JPG", size: "Smaller" },
@@ -238,6 +102,32 @@ function PresetDot({ active }: { active: boolean }) {
   if (!active) return null;
   return (
     <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-accent shadow-[0_0_0_2px_white]" />
+  );
+}
+
+// Pro Brand Kit handle pill — rendered inside the inner window so it
+// gets captured by html-to-image on every export. Position + light/dark
+// style + watermark line are all driven by the kit.
+function EditorBrandBadge({ kit }: { kit: BrandKit }) {
+  const positionClasses: Record<BadgePosition, string> = {
+    tl: "top-3 left-3",
+    tr: "top-3 right-3",
+    bl: "bottom-3 left-3",
+    br: "bottom-3 right-3",
+  };
+  const styleClasses =
+    kit.badgeStyle === "light"
+      ? "bg-white/90 text-ink"
+      : "bg-ink/90 text-white";
+  return (
+    <div
+      className={`pointer-events-none absolute z-10 rounded-full px-2.5 py-1 font-mono text-[11px] tracking-wide backdrop-blur ${positionClasses[kit.badgePosition]} ${styleClasses}`}
+    >
+      <div className="leading-tight">{kit.handle}</div>
+      {kit.badgeIncludeWatermark && (
+        <div className="text-[8px] leading-tight opacity-60">postabl.xyz</div>
+      )}
+    </div>
   );
 }
 
@@ -289,6 +179,15 @@ function EditorContent() {
   // the canvas (outside the export frame) and is dismissed permanently
   // once the user either clicks × or types into the URL.
   const [urlTipDismissed, setUrlTipDismissed] = useState(true);
+  // User's Brand Kit (Pro feature). null = not yet loaded or no kit;
+  // applied to a fresh editor session on first /me hydration when no
+  // screenshot is present. The handle badge renders inside frameRef
+  // so it's captured in every export.
+  const [brandKit, setBrandKit] = useState<BrandKit | null>(null);
+  // Tracks whether the pre-signin editor stash was restored on mount.
+  // If so, we skip the brand-kit auto-apply (the user had explicit
+  // settings mid-flow; don't clobber them with defaults).
+  const [stashRestored, setStashRestored] = useState(false);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -367,6 +266,9 @@ function EditorContent() {
       if (typeof stash.scale === "string") setScale(stash.scale);
       if (stash.windowStyle) setWindowStyle(stash.windowStyle);
       if (typeof stash.urlText === "string") setUrlText(stash.urlText);
+      // Mark restored so the brand-kit auto-apply effect knows to
+      // leave these values alone.
+      setStashRestored(true);
       window.localStorage.removeItem("postabl:editor-stash");
     } catch {
       // Malformed stash — ignore and move on.
@@ -464,9 +366,21 @@ function EditorContent() {
           setImgRatio(null);
           setDownloadsUsed(0);
           if (IS_DEV) setDevProOverride(false);
+          // Brand-kit is per-user — clear so a fresh load can run.
+          setBrandKit(null);
+          setBrandKitApplied(false);
         }
         setLastUserId(newId);
         setMe(data.user);
+
+        // Pro-only Brand Kit. Load alongside /me so we can auto-apply
+        // defaults before the user starts tweaking. Anon and free
+        // users have no kit — skip the fetch.
+        if (data.user?.isPro) {
+          const kit = await loadBrandKit();
+          if (cancelled) return;
+          if (kit) setBrandKit(kit);
+        }
       } catch {
         if (!cancelled) setMe(null);
       } finally {
@@ -477,6 +391,32 @@ function EditorContent() {
       cancelled = true;
     };
   }, []);
+
+  // Apply Brand Kit defaults to a fresh editor session. Runs once
+  // brandKit becomes available, but only when:
+  //   - no screenshot is loaded (otherwise the user has work in
+  //     progress and we don't clobber it)
+  //   - no stash was just restored (signin round-trip preserved an
+  //     in-flight state that takes precedence)
+  const [brandKitApplied, setBrandKitApplied] = useState(false);
+  useEffect(() => {
+    if (!brandKit) return;
+    if (brandKitApplied) return;
+    if (screenshot || stashRestored) {
+      // Already have user state — don't overwrite. Mark applied so
+      // we don't re-apply later in this session if conditions change.
+      setBrandKitApplied(true);
+      return;
+    }
+    setBgId(brandKit.defaultBgId);
+    setPadding(brandKit.defaultPadding);
+    setPaddingPreset(brandKit.defaultPaddingPreset);
+    setShadowPreset(brandKit.defaultShadowPreset);
+    setWindowStyle(brandKit.defaultWindowStyle);
+    setRatio(brandKit.defaultRatio);
+    setRadius(brandKit.defaultRadius);
+    setBrandKitApplied(true);
+  }, [brandKit, brandKitApplied, screenshot, stashRestored]);
 
   // Close the user menu on outside click.
   useEffect(() => {
@@ -509,6 +449,8 @@ function EditorContent() {
     setImgRatio(null);
     setDownloadsUsed(0);
     if (IS_DEV) setDevProOverride(false);
+    setBrandKit(null);
+    setBrandKitApplied(false);
     router.push("/signin");
     router.refresh();
   }
@@ -666,9 +608,7 @@ function EditorContent() {
     if (!isPro && scale === "4x") setScale("2x");
   }, [isPro, scale]);
 
-  const bg =
-    [...BACKGROUNDS, ...PATTERNS].find((b) => b.id === bgId) ??
-    BACKGROUNDS[0];
+  const bg = findBackground(bgId);
 
   const segBtn = (active: boolean) =>
     `rounded-md px-1.5 py-1.5 font-mono text-[11px] transition-all ${
@@ -1027,6 +967,20 @@ function EditorContent() {
                       {me.email}
                     </div>
                   </div>
+                  {/* Brand kit — always visible in the menu (settings
+                      page, not worth top-bar real estate). Pro chip
+                      tells free users this is a Pro feature. */}
+                  <Link
+                    href="/brand-kit"
+                    className="flex w-full items-center justify-between px-3.5 py-2.5 text-left text-[13px] text-ink-soft transition-colors hover:bg-bg-alt hover:text-ink"
+                  >
+                    <span>Brand kit</span>
+                    {!isPro && (
+                      <span className="rounded-full bg-bg-alt px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-ink-faint">
+                        Pro
+                      </span>
+                    )}
+                  </Link>
                   {/* Mobile-only quick actions — these live in the top
                       bar on desktop but are hidden there on mobile to
                       keep the bar from overflowing. */}
@@ -1304,7 +1258,7 @@ function EditorContent() {
           }}
         >
           <div
-            className="flex max-h-full max-w-full flex-col overflow-hidden bg-white transition-all"
+            className="relative flex max-h-full max-w-full flex-col overflow-hidden bg-white transition-all"
             style={{
               // After upload: window matches the screenshot's aspect
               // ratio so the frame hugs the image; letterboxes or
@@ -1426,6 +1380,11 @@ function EditorContent() {
                 </div>
               </div>
             )}
+            {/* Brand Kit handle badge — sits inside the inner window
+                (which has position:relative) so it overlays the
+                screenshot and is captured by html-to-image at export.
+                Only renders when the kit has a non-empty handle. */}
+            {brandKit?.handle && <EditorBrandBadge kit={brandKit} />}
           </div>
         </div>
         </div>
