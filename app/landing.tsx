@@ -374,6 +374,7 @@ export default function LandingPage() {
                 "Unlimited downloads",
                 "Maximum quality (4× retina)",
                 "All backgrounds & presets",
+                "Brand kit: your handle & defaults on every export",
                 "Priority export speeds",
                 "Early access to new features",
               ].map((item) => (
