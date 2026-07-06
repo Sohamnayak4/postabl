@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toPng, toJpeg, toBlob } from "html-to-image";
@@ -195,6 +195,70 @@ function EditorContent() {
   const frameRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
+
+  // Load an image File into the editor: validate, read as a data URL, set
+  // it as the screenshot, and persist to IndexedDB. Shared by the file
+  // picker and clipboard paste so both behave identically.
+  const ingestImageFile = useCallback(
+    (file: File) => {
+      if (!file.type.startsWith("image/")) {
+        notify.toast("Please pick an image file (PNG, JPG, WEBP, GIF).", {
+          tone: "error",
+        });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl =
+          typeof reader.result === "string" ? reader.result : null;
+        if (!dataUrl) return;
+        setScreenshot(dataUrl);
+        // Persist asynchronously to IndexedDB (50MB+ of headroom vs
+        // localStorage's 5-10MB). If it still fails (huge image, IDB
+        // blocked, or a genuine quota issue) the image stays in memory
+        // for this session.
+        void saveScreenshot(dataUrl).catch((err) => {
+          console.error(err);
+          notify.toast(
+            err instanceof Error
+              ? err.message
+              : "Couldn't save the screenshot. It'll stay loaded for this session only.",
+            { tone: "error", duration: 5000 }
+          );
+        });
+      };
+      reader.readAsDataURL(file);
+    },
+    [notify]
+  );
+
+  // Clipboard paste. On macOS, Cmd+Ctrl+Shift+4 copies a screenshot to the
+  // clipboard without writing a file anywhere, so users can paste straight
+  // in (Cmd+V) instead of hunting for a saved PNG. We grab the first image
+  // item off the paste event. Pastes landing in a text input (the URL bar)
+  // are left alone so typing a URL isn't hijacked.
+  useEffect(() => {
+    function onPaste(e: ClipboardEvent) {
+      const el = e.target as HTMLElement | null;
+      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")) return;
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.type.startsWith("image/")) {
+          const file = item.getAsFile();
+          if (file) {
+            e.preventDefault();
+            ingestImageFile(file);
+            notify.toast("Screenshot pasted.", { duration: 2000 });
+          }
+          return;
+        }
+      }
+    }
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, [ingestImageFile, notify]);
 
   // Load saved screenshot from IndexedDB after mount (avoids SSR mismatch).
   // Transparently migrates any older localStorage-backed value on first read.
@@ -627,32 +691,7 @@ function EditorContent() {
   function handleFilePicked(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      notify.toast("Please pick an image file (PNG, JPG, WEBP, GIF).", {
-        tone: "error",
-      });
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = typeof reader.result === "string" ? reader.result : null;
-      if (!dataUrl) return;
-      setScreenshot(dataUrl);
-      // Persist asynchronously to IndexedDB (50MB+ of headroom vs
-      // localStorage's 5-10MB). If it still fails — incredibly large
-      // image, IDB blocked, or genuine quota issue — the image stays
-      // in memory for this session.
-      void saveScreenshot(dataUrl).catch((err) => {
-        console.error(err);
-        notify.toast(
-          err instanceof Error
-            ? err.message
-            : "Couldn't save the screenshot. It'll stay loaded for this session only.",
-          { tone: "error", duration: 5000 }
-        );
-      });
-    };
-    reader.readAsDataURL(file);
+    ingestImageFile(file);
     // Reset so picking the same file twice still triggers onChange.
     e.target.value = "";
   }
@@ -1377,6 +1416,9 @@ function EditorContent() {
                   <div className="rounded-lg border border-line px-3.5 py-2 text-center text-xs font-medium text-ink">
                     Learn more
                   </div>
+                </div>
+                <div className="mt-3 font-mono text-[11px] text-ink-faint">
+                  or paste from your clipboard (⌘V)
                 </div>
               </div>
             )}
