@@ -1,10 +1,9 @@
-// Client-side helpers for the free-tier download quota and the dev-only
-// Pro toggle. Both live in localStorage so they're consistent across
-// /editor and /saved without needing extra plumbing.
+// Client-side helpers for the free-tier download quota. Lives in
+// localStorage so it's consistent across /editor and /saved without
+// needing extra plumbing.
 
 export const DAILY_FREE_LIMIT = 2;
 const DOWNLOADS_KEY = "postabl:downloads";
-const PRO_KEY = "postabl:isPro";
 
 // YYYY-MM-DD in *local* time. The quota resets at local midnight so a
 // user doesn't lose their remaining downloads when UTC rolls over
@@ -48,23 +47,4 @@ export function bumpDownloads(): number {
 
 export function getDownloadsRemaining(used = getDownloadsUsed()): number {
   return Math.max(0, DAILY_FREE_LIMIT - used);
-}
-
-// ---- Dev-only Pro toggle persistence --------------------------------
-
-export function getIsPro(): boolean {
-  if (typeof window === "undefined") return false;
-  try {
-    return window.localStorage.getItem(PRO_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
-export function setIsProStored(value: boolean) {
-  try {
-    window.localStorage.setItem(PRO_KEY, value ? "1" : "0");
-  } catch {
-    // ignore
-  }
 }

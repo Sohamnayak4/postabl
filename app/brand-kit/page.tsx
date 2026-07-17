@@ -46,7 +46,6 @@ type MeUser =
     }
   | null;
 
-const IS_DEV = process.env.NODE_ENV === "development";
 
 // Same value maps as the editor — duplicated here to keep brand-kit
 // independent. They're tiny and unlikely to drift.
@@ -104,7 +103,7 @@ function BrandBadge({
       : "px-2.5 py-1 text-[10px]";
   return (
     <div
-      className={`pointer-events-none absolute ${positionClasses[kit.badgePosition]} rounded-full font-mono tracking-wide backdrop-blur ${sizing} ${styleClasses}`}
+      className={`pointer-events-none absolute ${positionClasses[kit.badgePosition]} rounded-full font-mono tracking-wide ${sizing} ${styleClasses}`}
     >
       <div className="leading-tight">{kit.handle}</div>
       {kit.badgeIncludeWatermark && (

@@ -8,8 +8,6 @@ import {
   DAILY_FREE_LIMIT,
   bumpDownloads,
   getDownloadsUsed,
-  getIsPro,
-  setIsProStored,
 } from "@/lib/free-downloads";
 import { addSavedImage } from "@/lib/saved-images";
 import {
@@ -46,7 +44,6 @@ type MeUser =
     }
   | null;
 
-const IS_DEV = process.env.NODE_ENV === "development";
 
 const PADDING_PRESETS = ["S", "M", "L", "XL"] as const;
 type PaddingPreset = (typeof PADDING_PRESETS)[number];
@@ -115,13 +112,17 @@ function EditorBrandBadge({ kit }: { kit: BrandKit }) {
     bl: "bottom-3 left-3",
     br: "bottom-3 right-3",
   };
+  // No backdrop-blur here: html-to-image rasterizes backdrop-filter over
+  // the element's rectangular bounding box without the rounded-full clip,
+  // which leaks a blurred square past the pill's corners in exports. The
+  // near-opaque fill keeps the handle legible on any background without it.
   const styleClasses =
     kit.badgeStyle === "light"
       ? "bg-white/90 text-ink"
       : "bg-ink/90 text-white";
   return (
     <div
-      className={`pointer-events-none absolute z-10 rounded-full px-2.5 py-1 font-mono text-[11px] tracking-wide backdrop-blur ${positionClasses[kit.badgePosition]} ${styleClasses}`}
+      className={`pointer-events-none absolute z-10 rounded-full px-2.5 py-1 font-mono text-[11px] tracking-wide ${positionClasses[kit.badgePosition]} ${styleClasses}`}
     >
       <div className="leading-tight">{kit.handle}</div>
       {kit.badgeIncludeWatermark && (
@@ -158,10 +159,6 @@ function EditorContent() {
   const [windowStyle, setWindowStyle] = useState<"light" | "dark" | "none">("none");
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
-  // Dev-only override — lets us preview Pro-gated UI without going
-  // through Lemon Squeezy. Hidden in production builds; the effective
-  // `isPro` below combines this with the server-side flag.
-  const [devProOverride, setDevProOverride] = useState(false);
   const [urlText, setUrlText] = useState("postabl.xyz/editor");
   const [showAllBackgrounds, setShowAllBackgrounds] = useState(false);
   const [me, setMe] = useState<MeUser>(null);
@@ -277,11 +274,9 @@ function EditorContent() {
     };
   }, []);
 
-  // Hydrate today's download count from localStorage, and (dev only)
-  // restore the Pro override so it survives reloads.
+  // Hydrate today's download count from localStorage.
   useEffect(() => {
     setDownloadsUsed(getDownloadsUsed());
-    if (IS_DEV) setDevProOverride(getIsPro());
   }, []);
 
   // Track viewport size so we can pick a mobile-appropriate canvas width
@@ -368,18 +363,10 @@ function EditorContent() {
     setDownloadsUsed(next);
   }
 
-  function toggleDevProOverride() {
-    setDevProOverride((prev) => {
-      const next = !prev;
-      setIsProStored(next);
-      return next;
-    });
-  }
-
-  // Effective Pro state — server is canonical, dev override is purely a
-  // local convenience that does nothing in a production build.
-  const serverIsPro = me?.isPro ?? false;
-  const isPro = serverIsPro || (IS_DEV && devProOverride);
+  // Pro state comes straight from the server (/api/auth/me reads
+  // users.is_pro fresh on every call). To test Pro locally, flip
+  // is_pro on your user row in the DB.
+  const isPro = me?.isPro ?? false;
 
   const downloadsRemaining = Math.max(0, DAILY_FREE_LIMIT - downloadsUsed);
   const outOfFreeDownloads = !isPro && downloadsRemaining <= 0;
@@ -429,7 +416,6 @@ function EditorContent() {
           setScreenshot(null);
           setImgRatio(null);
           setDownloadsUsed(0);
-          if (IS_DEV) setDevProOverride(false);
           // Brand-kit is per-user — clear so a fresh load can run.
           setBrandKit(null);
           setBrandKitApplied(false);
@@ -512,7 +498,6 @@ function EditorContent() {
     setScreenshot(null);
     setImgRatio(null);
     setDownloadsUsed(0);
-    if (IS_DEV) setDevProOverride(false);
     setBrandKit(null);
     setBrandKitApplied(false);
     router.push("/signin");
@@ -674,10 +659,13 @@ function EditorContent() {
 
   const bg = findBackground(bgId);
 
+  // Selected state matches the export tiles below (ink fill, white
+  // label) so the whole right panel speaks one "active" language
+  // instead of two. Keeps chrome off pure white, per DESIGN.md.
   const segBtn = (active: boolean) =>
     `rounded-md px-1.5 py-1.5 font-mono text-[11px] transition-all ${
       active
-        ? "bg-white text-ink shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+        ? "bg-ink text-white shadow-[0_1px_2px_rgba(0,0,0,0.08)]"
         : "bg-transparent text-ink-soft hover:text-ink"
     }`;
 
@@ -852,33 +840,6 @@ function EditorContent() {
           </div>
         </div>
         <div className="flex items-center gap-2 md:gap-4">
-          {/* Dev-only Pro/Free toggle for testing gated features.
-              Hidden in production builds — real Pro state comes from
-              the server (Lemon Squeezy webhook -> users.is_pro). */}
-          {IS_DEV && (
-            <button
-              type="button"
-              onClick={toggleDevProOverride}
-              aria-pressed={isPro}
-              title="DEV ONLY: toggle Pro override (hidden in production)"
-              className={`hidden items-center gap-2 rounded-full border px-2.5 py-1 font-mono text-[11px] tracking-wide transition-colors md:flex ${
-                isPro
-                  ? "border-accent bg-accent/10 text-accent"
-                  : "border-line bg-bg-alt text-ink-faint hover:text-ink"
-              }`}
-            >
-              <span className="relative inline-flex h-[14px] w-6 items-center rounded-full bg-ink/10">
-                <span
-                  className={`absolute h-[10px] w-[10px] rounded-full bg-white shadow-[0_1px_2px_rgba(0,0,0,0.2)] transition-transform ${
-                    isPro ? "translate-x-[14px] bg-accent" : "translate-x-[2px]"
-                  }`}
-                />
-              </span>
-              {isPro ? "PRO" : "FREE"}
-              <span className="ml-1 text-[8px] uppercase opacity-60">dev</span>
-            </button>
-          )}
-
           {/* Downloads pill is only meaningful for signed-in users —
               anon users can't consume downloads without first signing
               in, so the counter would just be confusing. */}
@@ -922,42 +883,19 @@ function EditorContent() {
             </span>
             <span aria-hidden>↑</span>
           </button>
-          {screenshot && (
-            <button
-              onClick={handleClearScreenshot}
-              className="hidden items-center gap-1.5 rounded-lg border border-line bg-transparent px-3.5 py-2 text-[13px] font-medium text-ink-soft transition-all hover:bg-bg-alt hover:text-ink md:inline-flex"
-            >
-              Clear
-            </button>
-          )}
-          <Link
-            href="/saved"
-            className="hidden items-center gap-1.5 rounded-lg border border-line bg-transparent px-3.5 py-2 text-[13px] font-medium text-ink-soft transition-all hover:bg-bg-alt hover:text-ink md:inline-flex"
-          >
-            Saved
-          </Link>
-          <button
-            onClick={handleSave}
-            disabled={isSaving || !screenshot}
-            title={
-              !screenshot
-                ? "Upload a screenshot to save it"
-                : "Save this composition to your library"
-            }
-            className="hidden items-center gap-1.5 rounded-lg border border-line bg-transparent px-3.5 py-2 text-[13px] font-medium text-ink-soft transition-all hover:bg-bg-alt hover:text-ink disabled:cursor-not-allowed disabled:opacity-60 md:inline-flex"
-          >
-            {isSaving ? "Saving…" : "Save"}
-          </button>
-          {/* Upgrade button needs an account before it does anything
-              useful (handleUpgradeClick would just redirect to /signin
-              anyway) — hide it for anon users so the top bar stays
-              uncluttered and the sign-in CTA in the avatar slot does
-              the work. */}
+          {/* Upgrade is the one conversion action in the bar, so it
+              carries the single accent treatment — a restrained
+              terracotta outline that reads as an invitation, not another
+              utility. Free signed-in users only: anon users convert via
+              the sign-in CTA, Pro users have nothing to upgrade. Save /
+              Saved live in the account menu now, and Clear is always
+              available as the × on the canvas, so the bar stays down to
+              Upload · Upgrade · Export · account. */}
           {me && !isPro && (
             <button
               type="button"
               onClick={handleUpgradeClick}
-              className="hidden items-center gap-1.5 rounded-lg border border-line bg-transparent px-3.5 py-2 text-[13px] font-medium text-ink-soft transition-all hover:bg-bg-alt hover:text-ink md:inline-flex"
+              className="hidden items-center gap-1.5 rounded-lg border border-accent/40 bg-accent/5 px-3.5 py-2 text-[13px] font-medium text-accent transition-all hover:border-accent hover:bg-accent/10 md:inline-flex"
             >
               Upgrade to Pro
             </button>
@@ -1020,41 +958,45 @@ function EditorContent() {
                       </span>
                     )}
                   </Link>
-                  {/* Mobile-only quick actions — these live in the top
-                      bar on desktop but are hidden there on mobile to
-                      keep the bar from overflowing. */}
-                  <div className="md:hidden">
+                  {/* Save + library live in the menu at every size now,
+                      so the top bar stays down to primary actions. Save
+                      is disabled until there's a screenshot to save. */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      void handleSave();
+                    }}
+                    disabled={isSaving || !screenshot}
+                    title={
+                      !screenshot ? "Upload a screenshot to save it" : undefined
+                    }
+                    className="block w-full px-3.5 py-2.5 text-left text-[13px] text-ink-soft transition-colors hover:bg-bg-alt hover:text-ink disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isSaving ? "Saving…" : "Save to library"}
+                  </button>
+                  <Link
+                    href="/saved"
+                    onClick={() => setUserMenuOpen(false)}
+                    className="block w-full px-3.5 py-2.5 text-left text-[13px] text-ink-soft transition-colors hover:bg-bg-alt hover:text-ink"
+                  >
+                    Your saved
+                  </Link>
+                  {/* Upgrade sits in the top bar on desktop; surface it in
+                      the menu only on mobile, where the bar has no room. */}
+                  {!isPro && (
                     <button
                       type="button"
                       onClick={() => {
                         setUserMenuOpen(false);
-                        void handleSave();
+                        handleUpgradeClick();
                       }}
-                      disabled={isSaving || !screenshot}
-                      className="block w-full px-3.5 py-2.5 text-left text-[13px] text-ink-soft transition-colors hover:bg-bg-alt hover:text-ink disabled:cursor-not-allowed disabled:opacity-60"
+                      className="block w-full px-3.5 py-2.5 text-left text-[13px] font-medium text-accent transition-colors hover:bg-accent/5 md:hidden"
                     >
-                      {isSaving ? "Saving…" : "Save image"}
+                      Upgrade to Pro
                     </button>
-                    <Link
-                      href="/saved"
-                      className="block w-full px-3.5 py-2.5 text-left text-[13px] text-ink-soft transition-colors hover:bg-bg-alt hover:text-ink"
-                    >
-                      Your saved
-                    </Link>
-                    {!isPro && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setUserMenuOpen(false);
-                          handleUpgradeClick();
-                        }}
-                        className="block w-full px-3.5 py-2.5 text-left text-[13px] font-medium text-accent transition-colors hover:bg-accent/5"
-                      >
-                        Upgrade to Pro
-                      </button>
-                    )}
-                    <div className="border-t border-line" />
-                  </div>
+                  )}
+                  <div className="border-t border-line" />
                   <button
                     type="button"
                     onClick={handleSignout}
@@ -1271,7 +1213,7 @@ function EditorContent() {
                   type="button"
                   onClick={dismissUrlTip}
                   aria-label="Dismiss tip"
-                  className="-mr-1 ml-1 flex h-4 w-4 items-center justify-center rounded-full text-[14px] leading-none text-ink-faint transition-colors hover:bg-bg-alt hover:text-ink"
+                  className="-mr-1 ml-1 flex h-4 w-4 items-center justify-center rounded-full text-[13px] leading-none text-ink-faint transition-colors hover:bg-bg-alt hover:text-ink"
                 >
                   ×
                 </button>

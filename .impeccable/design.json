@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-12T00:00:00.000Z",
+  "title": "Design System: Postabl",
+  "extensions": {
+    "colorMeta": {
+      "terracotta": { "role": "primary", "displayName": "Terracotta", "canonical": "#d94f2e", "tonalRamp": ["#2d0f07", "#511b10", "#75281a", "#9c3623", "#d94f2e", "#e17b58", "#eba585", "#f4cebf"] },
+      "paper": { "role": "neutral", "displayName": "Warm Paper", "canonical": "#f7f5f0", "tonalRamp": ["#1a1a1a", "#3a3834", "#565049", "#726b61", "#8f877b", "#b3ab9d", "#efece5", "#f7f5f0"] },
+      "paper-deep": { "role": "neutral", "displayName": "Paper Deep", "canonical": "#efece5", "tonalRamp": ["#1a1a1a", "#3a3834", "#565049", "#726b61", "#8f877b", "#b3ab9d", "#d9d4c7", "#efece5"] },
+      "ink": { "role": "neutral", "displayName": "Ink", "canonical": "#1a1a1a", "tonalRamp": ["#000000", "#1a1a1a", "#333333", "#555555", "#6f6b65", "#8f877b", "#b3ab9d", "#d9d4c7"] },
+      "line": { "role": "neutral", "displayName": "Line", "canonical": "#d9d4c7", "tonalRamp": ["#3a3834", "#565049", "#726b61", "#8f877b", "#b3ab9d", "#d0cabb", "#d9d4c7", "#efece5"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Hero headline only; Fraunces at opsz 144, fluid and tight." },
+      "headline": { "displayName": "Headline", "purpose": "Section titles in Fraunces." },
+      "title": { "displayName": "Title", "purpose": "Feature and card headings, Fraunces medium." },
+      "body": { "displayName": "Body", "purpose": "Default reading copy in Geist; cap prose at 65-75ch." },
+      "label": { "displayName": "Label", "purpose": "Uppercase tracked JetBrains Mono for meta, filenames, markers." }
+    },
+    "shadows": [
+      { "name": "framed-export", "value": "0 50px 100px -20px rgba(0,0,0,0.35), 0 30px 60px -30px rgba(0,0,0,0.3), 0 0 0 1px rgba(0,0,0,0.05)", "purpose": "The signature deep soft shadow under the framed screenshot canvas. Reserved for the crafted output only." },
+      { "name": "demo-export", "value": "0 40px 80px -20px rgba(0,0,0,0.3), 0 0 0 1px rgba(0,0,0,0.05)", "purpose": "Lighter export shadow for the 'After' preview on the landing page." },
+      { "name": "canvas-rest", "value": "0 20px 60px -20px rgba(0,0,0,0.15)", "purpose": "Softer lift for a canvas at rest before framing." },
+      { "name": "tools-float", "value": "0 4px 16px rgba(0,0,0,0.04)", "purpose": "The one whisper-shadow allowed on chrome: floating tool clusters and the arrow badge." }
+    ],
+    "motion": [
+      { "name": "ease-out", "value": "ease-out", "purpose": "Default easing for hover lifts and state transitions." },
+      { "name": "toast-in", "value": "toast-in 200ms ease-out (translateY(12px)->0, opacity 0->1)", "purpose": "Toast entrance." },
+      { "name": "fade-in", "value": "fade-in 150ms ease-out", "purpose": "Overlay/backdrop fade." },
+      { "name": "confirm-in", "value": "confirm-in 180ms ease-out (scale(0.96)->1, opacity 0->1)", "purpose": "Confirm dialog entrance." },
+      { "name": "pulse-dot", "value": "pulse-dot 2s ease-in-out infinite", "purpose": "Live/status terracotta dot." },
+      { "name": "marquee", "value": "marquee 40s linear infinite", "purpose": "Landing marquee band." },
+      { "name": "hover-lift", "value": "translateY(-1px), transition-all", "purpose": "The entire button interaction vocabulary: a 1px rise on hover." }
+    ],
+    "breakpoints": [
+      { "name": "md", "value": "768px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The confident default action: ink pill that lifts 1px and deepens to black on hover.",
+      "html": "<button class=\"ds-btn-primary\">Get started &rarr;</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; gap: 6px; background: #1a1a1a; color: #f7f5f0; font-family: 'Geist', -apple-system, sans-serif; font-size: 15px; font-weight: 500; padding: 12px 24px; border: none; border-radius: 9999px; cursor: pointer; transition: background 0.2s ease-out, transform 0.2s ease-out; } .ds-btn-primary:hover { background: #000000; transform: translateY(-1px); } .ds-btn-primary:focus-visible { outline: 2px solid #1a1a1a; outline-offset: 2px; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary action: transparent pill with a hairline border and ink text.",
+      "html": "<button class=\"ds-btn-ghost\">See how it works</button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; gap: 6px; background: transparent; color: #1a1a1a; font-family: 'Geist', -apple-system, sans-serif; font-size: 15px; font-weight: 500; padding: 12px 24px; border: 1px solid #d9d4c7; border-radius: 9999px; cursor: pointer; transition: transform 0.2s ease-out, border-color 0.2s ease-out; } .ds-btn-ghost:hover { transform: translateY(-1px); border-color: #1a1a1a; } .ds-btn-ghost:focus-visible { outline: 2px solid #1a1a1a; outline-offset: 2px; }"
+    },
+    {
+      "name": "Eyebrow Pill",
+      "kind": "chip",
+      "refersTo": "eyebrow-pill",
+      "description": "Mono status/kicker pill on paper-deep with a terracotta pulse dot.",
+      "html": "<span class=\"ds-eyebrow\"><span class=\"ds-eyebrow-dot\"></span>Launch special &mdash; 33% off</span>",
+      "css": ".ds-eyebrow { display: inline-flex; align-items: center; gap: 8px; background: #efece5; color: #6f6b65; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; padding: 6px 14px; border: 1px solid #d9d4c7; border-radius: 9999px; } .ds-eyebrow-dot { width: 6px; height: 6px; border-radius: 9999px; background: #d94f2e; animation: ds-pulse 2s ease-in-out infinite; } @keyframes ds-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }"
+    },
+    {
+      "name": "Content Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Flat paper card defined by a hairline border, no shadow.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-kicker\">Free</div><div class=\"ds-card-title\">One price. Then you own it.</div><p class=\"ds-card-body\">Paste, tweak, download. No accounts required.</p></div>",
+      "css": ".ds-card { background: #f7f5f0; color: #1a1a1a; border: 1px solid #d9d4c7; border-radius: 16px; padding: 40px; } .ds-card-kicker { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: #6f6b65; margin-bottom: 24px; } .ds-card-title { font-family: 'Fraunces', Georgia, serif; font-size: 26px; font-weight: 500; line-height: 1.1; letter-spacing: -0.01em; margin-bottom: 12px; } .ds-card-body { font-family: 'Geist', -apple-system, sans-serif; font-size: 15px; line-height: 1.55; color: #555555; }"
+    },
+    {
+      "name": "Nav Bar",
+      "kind": "nav",
+      "refersTo": "nav",
+      "description": "Fixed translucent-paper nav with a blur and a wordmark carrying a terracotta period-dot.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-brand\" href=\"#\">postabl<span class=\"ds-brand-dot\"></span></a><div class=\"ds-nav-links\"><a href=\"#\">Features</a><a href=\"#\">Pricing</a></div></nav>",
+      "css": ".ds-nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; background: rgba(247,245,240,0.75); backdrop-filter: blur(12px); border-bottom: 1px solid #d9d4c7; } .ds-brand { display: inline-flex; align-items: baseline; gap: 2px; font-family: 'Fraunces', Georgia, serif; font-size: 22px; font-weight: 500; letter-spacing: -0.01em; color: #1a1a1a; text-decoration: none; } .ds-brand-dot { width: 7px; height: 7px; border-radius: 9999px; background: #d94f2e; } .ds-nav-links { display: flex; gap: 32px; } .ds-nav-links a { font-family: 'Geist', -apple-system, sans-serif; font-size: 14px; color: #555555; text-decoration: none; transition: color 0.2s ease-out; } .ds-nav-links a:hover { color: #1a1a1a; }"
+    },
+    {
+      "name": "Range Slider",
+      "kind": "input",
+      "refersTo": "slider",
+      "description": "The primary editor control: hairline track with an ink thumb ringed in paper.",
+      "html": "<input class=\"ds-slider\" type=\"range\" min=\"0\" max=\"100\" value=\"60\" aria-label=\"Padding\" />",
+      "css": ".ds-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 4px; background: #d0cabb; border-radius: 100px; outline: none; } .ds-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; background: #1a1a1a; border-radius: 50%; cursor: pointer; border: 3px solid #f7f5f0; box-shadow: 0 0 0 1px #1a1a1a; } .ds-slider::-moz-range-thumb { width: 16px; height: 16px; background: #1a1a1a; border-radius: 50%; cursor: pointer; border: 3px solid #f7f5f0; box-shadow: 0 0 0 1px #1a1a1a; } .ds-slider:focus-visible { outline: 2px solid #1a1a1a; outline-offset: 4px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Risograph Studio",
+    "overview": "Postabl is a risograph print shop for screenshots. One paper, one ink, honest texture -- the whole system runs on the discipline of a two-color press. The surface is warm off-white stock over a fine film grain, headlines are set in a fluid Fraunces serif like a magazine masthead, and a single terracotta ink does every job that needs attention. The charm is the constraint: the tool looks crafted and a little handmade precisely because it refuses the full-color, gradient-soaked palette of every other screenshot app. The UI is flat and matter-of-fact so the crafted export -- the framed screenshot floating on a deep soft shadow -- reads as the hero.",
+    "keyCharacteristics": [
+      "Warm paper + film grain as the substrate, never a flat white or a cream-tinted SaaS bg",
+      "One terracotta ink, used sparingly -- attention is a scarce resource",
+      "Fraunces serif display against Geist sans body and JetBrains Mono labels: a real contrast pairing",
+      "Flat, hairline-ruled chrome; dramatic soft shadow reserved for the framed export",
+      "Confident and unfussy: pill buttons that lift a hair on hover, nothing more"
+    ],
+    "rules": [
+      { "name": "The One Ink Rule", "body": "Terracotta is the only chromatic color in the system. If a screen needs a second accent hue, the design is wrong -- reach for weight, size, or an ink tint instead. On any given screen terracotta covers well under 10% of the surface.", "section": "colors" },
+      { "name": "The Pure-White Ban", "body": "UI chrome never uses #ffffff. White belongs to the user's content (the screenshot window, the canvas). Chrome lives on warm paper so the export reads as a separate, brighter plane.", "section": "colors" },
+      { "name": "The Serif-Speaks Rule", "body": "All voice and personality live in Fraunces. Headlines carry the wit; the sans body never tries to be clever. Emphasis in a headline is a terracotta <em>, never bold, never a color swap on the sans.", "section": "typography" },
+      { "name": "The Mono-Is-Furniture Rule", "body": "JetBrains Mono is for structural labels only -- filenames, meta, timestamps, tiny section markers. It is uppercase and tracked. Never set body copy or a heading in mono.", "section": "typography" },
+      { "name": "The Reserved-Shadow Rule", "body": "Chrome never casts a shadow. The deep soft shadow is reserved for the framed screenshot -- it signals 'this is the crafted output.' A shadow anywhere else steals the one gesture that means 'this is the work.'", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep terracotta (#d94f2e) under ~10% of any screen -- one ink, spent on the one thing that matters.",
+      "Do define chrome with warm-paper planes and #d9d4c7 hairlines; reserve the deep soft shadow for the framed screenshot only.",
+      "Do carry all voice in Fraunces headlines, with emphasis as a terracotta <em>.",
+      "Do set labels, filenames, and section markers in uppercase tracked JetBrains Mono.",
+      "Do keep hover to a 1px lift; keep the film grain overlay under everything.",
+      "Do hold body contrast to WCAG AA -- ink-faint stays at #6f6b65 (~5.4:1), never lighter for 'elegance.'"
+    ],
+    "donts": [
+      "Don't reach for the generic SaaS-gradient look -- no purple/blue gradients, no glassmorphism, no hero-metric templates, no identical icon-card grids.",
+      "Don't let the interface feel bloated or enterprise -- no heavy chrome, dense settings walls, forced onboarding, or 'upgrade now' nags.",
+      "Don't introduce a second accent hue. If a screen seems to need one, use weight, size, or an ink tint instead (The One Ink Rule).",
+      "Don't use pure #ffffff for UI chrome -- white belongs to the user's content (The Pure-White Ban).",
+      "Don't put a drop shadow on a card, button, or panel -- that gesture is reserved (The Reserved-Shadow Rule).",
+      "Don't pair Fraunces with a second serif or set body/headings in the mono; the three fonts each have one job (The Mono-Is-Furniture Rule).",
+      "Don't use border-left/border-right greater than 1px as a colored accent stripe on cards, callouts, or list items."
+    ]
+  }
+}

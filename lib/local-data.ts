@@ -19,7 +19,7 @@ const SCREENSHOT_DB = "postabl_screenshot";
 
 const LS_KEYS_TO_CLEAR = [
   "postabl:downloads",         // daily free-download counter
-  "postabl:isPro",             // dev-only Pro toggle
+  "postabl:isPro",             // legacy dev Pro toggle (removed; still wiped for old sessions)
   "postabl:editor-stash",      // pre-signin editor state stash
   "postabl:url-tip-dismissed", // URL-bar editability hint
   "postabl:saved",             // legacy pre-IDB saved images

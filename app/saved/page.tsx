@@ -12,7 +12,6 @@ import {
   DAILY_FREE_LIMIT,
   bumpDownloads,
   getDownloadsUsed,
-  getIsPro,
 } from "@/lib/free-downloads";
 import {
   MAX_SAVED,
@@ -38,7 +37,6 @@ type MeUser =
     }
   | null;
 
-const IS_DEV = process.env.NODE_ENV === "development";
 
 function formatRelative(ts: number): string {
   const diff = Date.now() - ts;
@@ -59,9 +57,6 @@ export default function SavedPage() {
   const [hydrated, setHydrated] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [downloadsUsed, setDownloadsUsed] = useState(0);
-  // Dev-only Pro override (mirrors the editor). Effective `isPro`
-  // below combines this with the server-side flag from /me.
-  const [devProOverride, setDevProOverride] = useState(false);
   const [me, setMe] = useState<MeUser>(null);
   const [meLoading, setMeLoading] = useState(true);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -90,7 +85,6 @@ export default function SavedPage() {
       } finally {
         if (!cancelled) {
           setDownloadsUsed(getDownloadsUsed());
-          if (IS_DEV) setDevProOverride(getIsPro());
           setHydrated(true);
         }
       }
@@ -134,7 +128,6 @@ export default function SavedPage() {
           setImages([]);
           setImageUrls({});
           setDownloadsUsed(0);
-          if (IS_DEV) setDevProOverride(false);
         }
         setLastUserId(newId);
         setMe(data.user);
@@ -176,15 +169,13 @@ export default function SavedPage() {
     setImages([]);
     setImageUrls({});
     setDownloadsUsed(0);
-    if (IS_DEV) setDevProOverride(false);
     router.push("/signin");
     router.refresh();
   }
 
-  // Effective Pro state — server is canonical, dev override is purely
-  // a local convenience that does nothing in a production build.
-  const serverIsPro = me?.isPro ?? false;
-  const isPro = serverIsPro || (IS_DEV && devProOverride);
+  // Pro state comes straight from the server (/api/auth/me reads
+  // users.is_pro fresh on every call).
+  const isPro = me?.isPro ?? false;
 
   const downloadsRemaining = Math.max(0, DAILY_FREE_LIMIT - downloadsUsed);
   const outOfFreeDownloads = !isPro && downloadsRemaining <= 0;

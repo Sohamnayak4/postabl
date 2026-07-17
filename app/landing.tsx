@@ -6,6 +6,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { findBackground } from "@/lib/backgrounds";
 
 export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
@@ -22,7 +23,7 @@ export default function LandingPage() {
 
       {/* NAV */}
       <nav
-        className={`fixed inset-x-0 top-0 z-[100] flex items-center justify-between px-5 py-4 backdrop-blur-md bg-[rgba(247,245,240,0.75)] border-b transition-colors md:px-10 md:py-5 ${
+        className={`fixed inset-x-0 top-0 z-50 flex items-center justify-between px-5 py-4 backdrop-blur-md bg-[rgba(247,245,240,0.75)] border-b transition-colors md:px-10 md:py-5 ${
           scrolled ? "border-line" : "border-transparent"
         }`}
       >
@@ -54,13 +55,14 @@ export default function LandingPage() {
           </Link>
           <Link
             href="/editor"
-            className="inline-flex items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-[13px] font-medium text-bg transition-all hover:-translate-y-[1px] hover:bg-black md:px-[18px] md:py-[9px] md:text-sm"
+            className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-[13px] font-medium text-bg transition-all hover:-translate-y-[1px] hover:bg-black md:min-h-0 md:px-[18px] md:py-[9px] md:text-sm"
           >
             Start free →
           </Link>
         </div>
       </nav>
 
+      <main>
       {/* HERO */}
       <section className="relative z-[2] mx-auto max-w-[1200px] px-5 pt-[100px] pb-12 md:px-10 md:pt-[140px] md:pb-20">
         <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-line bg-bg-alt px-[12px] py-[5px] text-[10px] uppercase tracking-wider text-ink-faint md:mb-8 md:px-[14px] md:py-[6px] md:text-xs">
@@ -71,7 +73,7 @@ export default function LandingPage() {
           Make your
           <br />
           screenshots{" "}
-          <em className="text-accent not-italic-weight">postabl.</em>
+          <em className="text-accent not-italic">postabl.</em>
         </h1>
         <p className="mb-8 max-w-[540px] text-[16px] leading-[1.5] text-ink-soft md:mb-10 md:text-[19px]">
           The fastest way to turn raw screenshots into scroll-stopping images
@@ -111,8 +113,11 @@ export default function LandingPage() {
           // Shared "screenshot content" — the user's raw capture (a
           // dashboard-style mockup). Identical on both sides so the only
           // difference the viewer registers is the framing.
+          // Decorative product mockup — hidden from assistive tech so the
+          // screen reader isn't read a wall of fake metrics; the framing
+          // captions outside this block stay announced.
           const screenshotContent = (
-            <div className="p-5">
+            <div className="p-5" aria-hidden>
               <div className="mb-1 font-mono text-[9px] uppercase tracking-wider text-ink-faint">
                 MRR · This month
               </div>
@@ -177,10 +182,7 @@ export default function LandingPage() {
                   </div>
                   <div
                     className="flex min-h-[240px] flex-grow items-center justify-center p-6 md:min-h-[320px] md:p-10"
-                    style={{
-                      background:
-                        "radial-gradient(circle at 30% 20%, #fce4b6, transparent 50%), radial-gradient(circle at 80% 80%, #e8a598, transparent 50%), linear-gradient(135deg, #f4c896, #d98a7a)",
-                    }}
+                    style={findBackground("peach").style}
                   >
                     {/* Same screenshot, now framed properly */}
                     <div className="w-full max-w-[360px] overflow-hidden rounded-[10px] bg-white shadow-demo-screenshot">
@@ -400,6 +402,8 @@ export default function LandingPage() {
         </p>
       </section>
 
+      </main>
+
       {/* FOOTER */}
       <footer className="relative z-[2] mt-16 border-t border-line px-5 pb-8 pt-12 md:mt-20 md:px-10 md:pb-10 md:pt-20">
         <div className="mx-auto mb-10 flex max-w-[1200px] flex-col items-start justify-between gap-8 md:mb-[60px] md:flex-row md:items-end md:gap-10">
@@ -417,7 +421,7 @@ export default function LandingPage() {
             href="https://x.com/soham_nayak04"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-full border border-line bg-bg-alt px-4 py-2.5 text-sm font-medium text-ink transition-all hover:-translate-y-[1px] hover:border-ink"
+            className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-line bg-bg-alt px-4 py-2.5 text-sm font-medium text-ink transition-all hover:-translate-y-[1px] hover:border-ink"
           >
             <svg
               viewBox="0 0 24 24"
