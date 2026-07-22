@@ -544,6 +544,10 @@ function EditorContent() {
     title: string;
     description: string;
     confirmLabel?: string;
+    // Where to land after auth. Defaults to the editor; pass another
+    // path (e.g. /brand-kit) when the click's intent is a different
+    // destination. The stash keeps editor tweaks safe either way.
+    next?: string;
   }): Promise<boolean> {
     if (me) return true;
     const ok = await notify.confirm({
@@ -554,8 +558,24 @@ function EditorContent() {
     });
     if (!ok) return false;
     persistEditorStash();
-    window.location.href = "/signin?next=/editor";
+    window.location.href = `/signin?next=${opts.next ?? "/editor"}`;
     return false;
+  }
+
+  // "Set up brand kit" in the Properties panel. Signed-in users (free
+  // included) go straight to /brand-kit: the page previews the kit and
+  // carries its own Pro gate on save. Anon users get the standard
+  // sign-in confirm with their editor tweaks stashed, landing on
+  // /brand-kit after auth.
+  async function handleBrandKitSetupClick() {
+    const ok = await requireSignedIn({
+      title: "Sign in to set up your brand kit",
+      description:
+        "Your @handle and default style, applied to every export. Sign in with Google first, and we'll keep your work.",
+      next: "/brand-kit",
+    });
+    if (!ok) return;
+    router.push("/brand-kit");
   }
 
   function handleUpgradeClick() {
@@ -1522,6 +1542,66 @@ function EditorContent() {
         </div>
 
         {/* Patterns gate is handled in the left sidebar; nothing here. */}
+
+        {/* Brand kit — discovery surface. The kit itself lives at
+            /brand-kit; this section exists so new users actually find
+            it. Everyone (anon included) sees what the badge does right
+            where the rest of the export styling lives. Gating is
+            unchanged: saving a kit stays Pro, enforced server-side. */}
+        <div className="mb-7">
+          <div className="mb-3 flex items-center justify-between font-mono text-[10px] uppercase tracking-wider text-ink-faint">
+            <span>Brand kit</span>
+            <span
+              className={`rounded-full px-1.5 py-0.5 text-[9px] ${
+                isPro ? "bg-accent/10 text-accent" : "bg-bg-alt"
+              }`}
+            >
+              {isPro ? "UNLOCKED" : "Pro"}
+            </span>
+          </div>
+          {brandKit?.handle ? (
+            // Kit is set (implies Pro — the kit only loads for Pro
+            // users). Show the live handle and a path to edit it.
+            <div className="flex items-center justify-between gap-2">
+              <span
+                className={`rounded-full px-2.5 py-1 font-mono text-[11px] tracking-wide ${
+                  brandKit.badgeStyle === "light"
+                    ? "border border-line bg-white text-ink"
+                    : "bg-ink text-white"
+                }`}
+              >
+                {brandKit.handle}
+              </span>
+              <Link
+                href="/brand-kit"
+                className="rounded-lg border border-line bg-transparent px-2 py-1 text-[11px] font-medium text-ink-soft transition-all hover:bg-bg-alt hover:text-ink"
+              >
+                Edit
+              </Link>
+            </div>
+          ) : (
+            <>
+              {/* Mock badge at locked-pattern opacity so it reads as a
+                  preview, not a live control. */}
+              <div className="mb-2.5">
+                <span className="inline-block rounded-full bg-ink px-2.5 py-1 font-mono text-[11px] tracking-wide text-white opacity-55">
+                  @yourhandle
+                </span>
+              </div>
+              <p className="mb-2.5 text-xs leading-[1.5] text-ink-soft">
+                Your handle, stamped on every export. Set it once, it
+                follows you.
+              </p>
+              <button
+                type="button"
+                onClick={handleBrandKitSetupClick}
+                className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-line bg-bg-alt px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-ink-soft transition-all hover:border-ink hover:text-ink"
+              >
+                Set up brand kit →
+              </button>
+            </>
+          )}
+        </div>
 
         {/* Export */}
         <div className="border-t border-line pt-5">
