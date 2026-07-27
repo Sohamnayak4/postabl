@@ -23,6 +23,10 @@ export function getDataFast(): Promise<DataFastClient> {
   if (!clientPromise) {
     clientPromise = initDataFast({
       websiteId: WEBSITE_ID,
+      // Mirrors the data-domain in DataFast's dashboard snippet so
+      // events attribute to the registered site regardless of the
+      // serving hostname (www, previews).
+      domain: "postabl.xyz",
       autoCapturePageviews: true,
       // Console logging in dev only — mirrors how Vercel Analytics
       // behaves. Localhost events are never sent either way
