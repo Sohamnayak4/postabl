@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { NotifyProvider } from "@/components/notify";
+import { DataFastAnalytics } from "@/components/datafast";
 
 // metadataBase makes file-convention images (app/icon.tsx,
 // app/opengraph-image.tsx, app/twitter-image.tsx) resolve to absolute
@@ -80,6 +81,7 @@ export default function RootLayout({
       <body className="antialiased" suppressHydrationWarning>
         <NotifyProvider>{children}</NotifyProvider>
         <Analytics />
+        <DataFastAnalytics />
       </body>
     </html>
   );

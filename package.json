@@ -12,6 +12,7 @@
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
     "@vercel/analytics": "^2.0.1",
+    "datafast": "^3.0.18",
     "html-to-image": "^1.11.13",
     "jose": "^6.2.2",
     "next": "15.1.11",
