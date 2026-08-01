@@ -317,6 +317,12 @@ export default function SavedPage() {
                       </span>
                     )}
                   </Link>
+                  <Link
+                    href="/xshare"
+                    className="block w-full px-3.5 py-2.5 text-left text-[13px] text-ink-soft transition-colors hover:bg-bg-alt hover:text-ink"
+                  >
+                    X profile card
+                  </Link>
                   <button
                     type="button"
                     onClick={handleSignout}

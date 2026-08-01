@@ -7,9 +7,101 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { findBackground } from "@/lib/backgrounds";
+import type { BadgePosition, BadgeStyle } from "@/lib/brand-kit";
+
+// The "raw capture" used by both the before/after demo and the Brand Kit
+// showcase — a dashboard-style product mockup. Decorative, so it's hidden
+// from assistive tech: a screen reader gets the framing captions around it
+// instead of a wall of fake metrics.
+function ScreenshotMock() {
+  return (
+    <div className="p-5" aria-hidden>
+      <div className="mb-1 font-mono text-[9px] uppercase tracking-wider text-ink-faint">
+        MRR · This month
+      </div>
+      <div className="mb-3 font-serif text-[28px] font-medium leading-none tracking-tight text-ink">
+        $12,480
+      </div>
+      <div className="mb-4 flex items-center gap-2">
+        <span className="rounded-sm bg-[#d4f4dd] px-1.5 py-0.5 font-mono text-[9px] font-medium text-[#1f7a3e]">
+          ↑ 23%
+        </span>
+        <span className="font-mono text-[10px] text-ink-faint">
+          vs last month
+        </span>
+      </div>
+      <div className="flex h-12 items-end gap-1">
+        {[30, 48, 42, 58, 52, 68, 72, 85].map((h, i) => (
+          <div
+            key={i}
+            className={`flex-1 rounded-[2px] ${
+              i === 7 ? "bg-accent" : "bg-ink/15"
+            }`}
+            style={{ height: `${h}%` }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Landing-page twin of the editor's EditorBrandBadge. Kept visually in
+// sync with it (same pill shape, mono type, light/dark fills, corner
+// offsets) so what people see here is what lands in their export.
+const BADGE_POSITION_CLASSES: Record<BadgePosition, string> = {
+  tl: "top-3 left-3",
+  tr: "top-3 right-3",
+  bl: "bottom-3 left-3",
+  br: "bottom-3 right-3",
+};
+
+function DemoBrandBadge({
+  handle,
+  position,
+  style,
+  watermark,
+}: {
+  handle: string;
+  position: BadgePosition;
+  style: BadgeStyle;
+  watermark: boolean;
+}) {
+  return (
+    <div
+      aria-hidden
+      className={`pointer-events-none absolute z-10 rounded-full px-2.5 py-1 font-mono text-[11px] tracking-wide transition-all duration-300 ${
+        BADGE_POSITION_CLASSES[position]
+      } ${style === "light" ? "bg-white/90 text-ink" : "bg-ink/90 text-white"}`}
+    >
+      <div className="leading-tight">{handle}</div>
+      {watermark && (
+        <div className="text-[8px] leading-tight opacity-60">postabl.xyz</div>
+      )}
+    </div>
+  );
+}
+
+const BADGE_POSITION_LABELS: { id: BadgePosition; label: string }[] = [
+  { id: "tl", label: "Top left" },
+  { id: "tr", label: "Top right" },
+  { id: "bl", label: "Bottom left" },
+  { id: "br", label: "Bottom right" },
+];
+
+// A small, deliberately opinionated slice of the full background list —
+// enough to prove the kit remembers your pick without turning the landing
+// page into the editor's picker.
+const BRAND_KIT_DEMO_BGS = ["peach", "noir", "mint", "twilight", "sand"];
 
 export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
+
+  // Brand Kit showcase — live, because the feature is easier to believe
+  // when you can move the badge around yourself than when it's described.
+  const [bkPosition, setBkPosition] = useState<BadgePosition>("br");
+  const [bkStyle, setBkStyle] = useState<BadgeStyle>("dark");
+  const [bkWatermark, setBkWatermark] = useState(true);
+  const [bkBg, setBkBg] = useState("peach");
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -35,6 +127,12 @@ export default function LandingPage() {
           <span className="inline-block h-[7px] w-[7px] rounded-full bg-accent" />
         </Link>
         <div className="flex items-center gap-3 text-sm md:gap-8">
+          <a
+            href="#brand-kit"
+            className="hidden text-ink-soft transition-colors hover:text-ink md:inline"
+          >
+            Brand kit
+          </a>
           <a
             href="#features"
             className="hidden text-ink-soft transition-colors hover:text-ink md:inline"
@@ -110,41 +208,9 @@ export default function LandingPage() {
       {/* DEMO — side-by-side before/after */}
       <section className="relative z-[2] mx-auto mt-6 max-w-[1200px] px-5 md:mt-10 md:px-10">
         {(() => {
-          // Shared "screenshot content" — the user's raw capture (a
-          // dashboard-style mockup). Identical on both sides so the only
-          // difference the viewer registers is the framing.
-          // Decorative product mockup — hidden from assistive tech so the
-          // screen reader isn't read a wall of fake metrics; the framing
-          // captions outside this block stay announced.
-          const screenshotContent = (
-            <div className="p-5" aria-hidden>
-              <div className="mb-1 font-mono text-[9px] uppercase tracking-wider text-ink-faint">
-                MRR · This month
-              </div>
-              <div className="mb-3 font-serif text-[28px] font-medium leading-none tracking-tight text-ink">
-                $12,480
-              </div>
-              <div className="mb-4 flex items-center gap-2">
-                <span className="rounded-sm bg-[#d4f4dd] px-1.5 py-0.5 font-mono text-[9px] font-medium text-[#1f7a3e]">
-                  ↑ 23%
-                </span>
-                <span className="font-mono text-[10px] text-ink-faint">
-                  vs last month
-                </span>
-              </div>
-              <div className="flex h-12 items-end gap-1">
-                {[30, 48, 42, 58, 52, 68, 72, 85].map((h, i) => (
-                  <div
-                    key={i}
-                    className={`flex-1 rounded-[2px] ${
-                      i === 7 ? "bg-accent" : "bg-ink/15"
-                    }`}
-                    style={{ height: `${h}%` }}
-                  />
-                ))}
-              </div>
-            </div>
-          );
+          // Same capture on both sides, so the only difference the viewer
+          // registers is the framing.
+          const screenshotContent = <ScreenshotMock />;
 
           return (
             <div className="relative">
@@ -181,7 +247,7 @@ export default function LandingPage() {
                     </div>
                   </div>
                   <div
-                    className="flex min-h-[240px] flex-grow items-center justify-center p-6 md:min-h-[320px] md:p-10"
+                    className="relative flex min-h-[240px] flex-grow items-center justify-center p-6 md:min-h-[320px] md:p-10"
                     style={findBackground("peach").style}
                   >
                     {/* Same screenshot, now framed properly */}
@@ -193,9 +259,19 @@ export default function LandingPage() {
                       </div>
                       {screenshotContent}
                     </div>
+                    {/* Brand Kit badge, anchored to the background frame
+                        exactly like the editor does it — this is what a
+                        real Pro export looks like. Explained in full in
+                        the Brand Kit section directly below. */}
+                    <DemoBrandBadge
+                      handle="@soham_nayak04"
+                      position="br"
+                      style="dark"
+                      watermark={false}
+                    />
                   </div>
                   <div className="border-t border-line bg-bg px-4 py-2.5 font-mono text-[10px] tracking-wide text-ink-faint md:px-5 md:py-3">
-                    Framed. Breathing.{" "}
+                    Framed. Breathing. Signed.{" "}
                     <span className="text-accent">Actually postabl.</span>
                   </div>
                 </div>
@@ -214,6 +290,191 @@ export default function LandingPage() {
         <p className="mt-5 text-center font-mono text-[11px] tracking-wide text-ink-faint md:mt-6">
           Same pixels. Different posture.
         </p>
+      </section>
+
+      {/* BRAND KIT — the flagship Pro feature. Shown working rather than
+          described: the badge controls below drive the live preview, so
+          the value lands before anyone reads a word of copy. */}
+      <section
+        id="brand-kit"
+        className="relative z-[2] mx-auto max-w-[1200px] px-5 pt-16 md:px-10 md:pt-[120px]"
+      >
+        <div className="mb-10 grid grid-cols-1 items-end gap-6 md:mb-14 md:grid-cols-[1fr_2fr] md:gap-10">
+          <div className="font-mono text-xs uppercase tracking-wider text-ink-faint">
+            /01 — Brand Kit
+          </div>
+          <div>
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/5 px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-accent">
+              Pro feature
+            </div>
+            <h2 className="font-serif text-[36px] font-normal leading-[1.05] tracking-[-1px] md:text-[56px] md:tracking-[-1.5px]">
+              Set it once. <em className="text-accent">Signed forever.</em>
+            </h2>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-[1.2fr_1fr] md:gap-6">
+          {/* LIVE PREVIEW */}
+          <div className="flex flex-col overflow-hidden rounded-2xl border border-line bg-bg-alt">
+            <div className="flex items-center justify-between border-b border-line px-4 py-2.5 md:px-5 md:py-3">
+              <div className="font-mono text-[11px] uppercase tracking-wider text-ink-faint">
+                <span className="text-accent">Live</span> — your export
+              </div>
+              <div className="font-mono text-[10px] tracking-wide text-ink-faint">
+                postabl-export.png
+              </div>
+            </div>
+            <div
+              className="relative flex min-h-[260px] flex-grow items-center justify-center p-6 transition-all duration-300 md:min-h-[340px] md:p-10"
+              style={findBackground(bkBg).style}
+            >
+              <div className="w-full max-w-[340px] overflow-hidden rounded-[10px] bg-white shadow-demo-screenshot">
+                <div className="flex items-center gap-1.5 border-b border-[#eaeaea] bg-[#f5f5f5] px-3 py-2">
+                  <span className="h-2 w-2 rounded-full bg-[#ff5f57]" />
+                  <span className="h-2 w-2 rounded-full bg-[#febc2e]" />
+                  <span className="h-2 w-2 rounded-full bg-[#28c840]" />
+                </div>
+                <ScreenshotMock />
+              </div>
+              <DemoBrandBadge
+                handle="@soham_nayak04"
+                position={bkPosition}
+                style={bkStyle}
+                watermark={bkWatermark}
+              />
+            </div>
+            <div className="border-t border-line bg-bg px-4 py-2.5 font-mono text-[10px] tracking-wide text-ink-faint md:px-5 md:py-3">
+              Every export leaves with{" "}
+              <span className="text-accent">your name on it.</span>
+            </div>
+          </div>
+
+          {/* CONTROLS */}
+          <div className="flex flex-col gap-5 rounded-2xl border border-line bg-bg p-6 md:p-8">
+            <p className="text-[15px] leading-[1.55] text-ink-soft md:text-base">
+              Your handle rides along on every image you export — no
+              re-typing, no forgetting, no screenshot going out uncredited
+              because you were in a hurry.
+            </p>
+
+            <div>
+              <div className="mb-2.5 font-mono text-[10px] uppercase tracking-wider text-ink-faint">
+                Badge position
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {BADGE_POSITION_LABELS.map(({ id, label }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setBkPosition(id)}
+                    aria-pressed={bkPosition === id}
+                    className={`rounded-lg border px-3 py-2 text-left text-[13px] transition-colors ${
+                      bkPosition === id
+                        ? "border-ink bg-ink text-bg"
+                        : "border-line bg-bg-alt text-ink-soft hover:border-line-strong hover:text-ink"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div className="mb-2.5 font-mono text-[10px] uppercase tracking-wider text-ink-faint">
+                Badge style
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {(["dark", "light"] as BadgeStyle[]).map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setBkStyle(s)}
+                    aria-pressed={bkStyle === s}
+                    className={`rounded-lg border px-3.5 py-2 text-[13px] capitalize transition-colors ${
+                      bkStyle === s
+                        ? "border-ink bg-ink text-bg"
+                        : "border-line bg-bg-alt text-ink-soft hover:border-line-strong hover:text-ink"
+                    }`}
+                  >
+                    {s}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setBkWatermark((v) => !v)}
+                  aria-pressed={bkWatermark}
+                  className={`rounded-lg border px-3.5 py-2 text-[13px] transition-colors ${
+                    bkWatermark
+                      ? "border-ink bg-ink text-bg"
+                      : "border-line bg-bg-alt text-ink-soft hover:border-line-strong hover:text-ink"
+                  }`}
+                >
+                  + site line
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <div className="mb-2.5 font-mono text-[10px] uppercase tracking-wider text-ink-faint">
+                Default background
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {BRAND_KIT_DEMO_BGS.map((id) => {
+                  const bg = findBackground(id);
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setBkBg(id)}
+                      aria-label={`Default background: ${bg.label}`}
+                      aria-pressed={bkBg === id}
+                      title={bg.label}
+                      className={`h-9 w-9 rounded-lg border transition-all ${
+                        bkBg === id
+                          ? "border-ink ring-2 ring-ink/15"
+                          : "border-line hover:border-line-strong"
+                      }`}
+                      style={bg.style}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* The other half of the kit: the presets it restores for you
+                on every fresh session. Static on purpose — the badge is
+                the part worth playing with. */}
+            <div>
+              <div className="mb-2.5 font-mono text-[10px] uppercase tracking-wider text-ink-faint">
+                Remembered on every new session
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  "Padding M",
+                  "Shadow Deep",
+                  "Radius 10",
+                  "Ratio Auto",
+                  "No chrome",
+                ].map((chip) => (
+                  <span
+                    key={chip}
+                    className="rounded-full border border-line bg-bg-alt px-2.5 py-1 font-mono text-[10px] tracking-wide text-ink-faint"
+                  >
+                    {chip}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <Link
+              href="/brand-kit"
+              className="mt-auto inline-flex items-center justify-center gap-1.5 rounded-full bg-ink px-6 py-3 text-sm font-medium text-bg transition-all hover:-translate-y-[1px] hover:bg-black"
+            >
+              Set up your brand kit →
+            </Link>
+          </div>
+        </div>
       </section>
 
       {/* MARQUEE */}
@@ -250,7 +511,7 @@ export default function LandingPage() {
       >
         <div className="mb-12 grid grid-cols-1 items-end gap-6 md:mb-20 md:grid-cols-[1fr_2fr] md:gap-10">
           <div className="font-mono text-xs uppercase tracking-wider text-ink-faint">
-            /01 — Features
+            /02 — Features
           </div>
           <h2 className="font-serif text-[36px] font-normal leading-[1.05] tracking-[-1px] md:text-[56px] md:tracking-[-1.5px]">
             Small tool. <em className="text-accent">Big difference.</em>
@@ -312,7 +573,7 @@ export default function LandingPage() {
       >
         <div className="grid grid-cols-1 items-end gap-6 md:grid-cols-[1fr_2fr] md:gap-10">
           <div className="font-mono text-xs uppercase tracking-wider text-ink-faint">
-            /02 — Pricing
+            /03 — Pricing
           </div>
           <h2 className="font-serif text-[36px] font-normal leading-[1.05] tracking-[-1px] md:text-[56px] md:tracking-[-1.5px]">
             One price. <em className="text-accent">Then you own it.</em>

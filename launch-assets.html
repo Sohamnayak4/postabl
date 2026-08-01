@@ -1,0 +1,919 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Postabl — Launch video assets</title>
+
+<!--
+  Launch video asset sheet.
+
+  Every panel below is a 1280x720 frame drawn in Postabl's real design
+  tokens (cream #f7f5f0, ink #1a1a1a, terracotta #d94f2e, Fraunces /
+  Geist / JetBrains Mono). Frames are displayed scaled to fit, but each
+  one exports at 1920x1080 — drop the PNGs straight onto a video
+  timeline, or screen-record this page and scroll.
+
+  Open it by double-clicking the file. Needs an internet connection for
+  the webfonts and the PNG exporter; without one the layout still works,
+  it just falls back to system fonts and the download buttons go quiet.
+-->
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500&family=JetBrains+Mono:wght@400;500&family=Geist:wght@300;400;500;600&display=swap"
+  rel="stylesheet"
+/>
+
+<style>
+  :root {
+    --bg: #f7f5f0;
+    --bg-alt: #efece5;
+    --panel: #ffffff;
+    --ink: #1a1a1a;
+    --ink-soft: #555555;
+    --ink-faint: #6f6b65;
+    --line: #d9d4c7;
+    --line-strong: #d0cabb;
+    --accent: #d94f2e;
+
+    --serif: "Fraunces", Georgia, serif;
+    --sans: "Geist", -apple-system, BlinkMacSystemFont, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, monospace;
+
+    --shadow-screenshot: 0 50px 100px -20px rgba(0,0,0,.35),
+                         0 30px 60px -30px rgba(0,0,0,.3),
+                         0 0 0 1px rgba(0,0,0,.05);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: #e4e0d6;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    padding: 40px 24px 120px;
+  }
+
+  /* ---------- page chrome (not part of any exported frame) ---------- */
+
+  .sheet { max-width: 1180px; margin: 0 auto; }
+
+  .sheet-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    padding-bottom: 28px;
+    margin-bottom: 36px;
+    border-bottom: 1px solid var(--line-strong);
+  }
+  .sheet-head h1 {
+    font-family: var(--serif);
+    font-size: 44px;
+    font-weight: 400;
+    letter-spacing: -1.5px;
+    line-height: 1;
+  }
+  .sheet-head p {
+    max-width: 460px;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    margin-top: 10px;
+  }
+  .sheet-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  .btn {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 10px 18px;
+    border-radius: 999px;
+    border: 1px solid var(--line-strong);
+    background: var(--bg);
+    color: var(--ink);
+    cursor: pointer;
+    transition: transform .15s ease, background .15s ease;
+  }
+  .btn:hover { transform: translateY(-1px); background: #fff; }
+  .btn--solid { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+  .btn--solid:hover { background: #000; }
+  .btn[disabled] { opacity: .5; cursor: not-allowed; transform: none; }
+
+  .asset { margin-bottom: 44px; }
+
+  .asset-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 10px;
+  }
+  .asset-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #6b665e;
+  }
+  .asset-label b { color: var(--ink); font-weight: 500; }
+
+  /* Scaled viewport. The .frame inside keeps its true 1280x720 box so
+     html-to-image captures it at full size regardless of zoom level. */
+  .stage {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    border-radius: 10px;
+    box-shadow: 0 18px 40px -24px rgba(0,0,0,.45);
+  }
+  .frame {
+    position: absolute;
+    top: 0; left: 0;
+    width: 1280px;
+    height: 720px;
+    transform-origin: top left;
+    overflow: hidden;
+    background: var(--bg);
+  }
+
+  /* ---------- shared frame furniture ---------- */
+
+  .grain {
+    position: absolute; inset: 0; pointer-events: none; z-index: 3;
+    opacity: .3; mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  }
+
+  .wordmark {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 3px;
+    font-family: var(--serif);
+    font-weight: 500;
+    letter-spacing: -.03em;
+    line-height: 1;
+  }
+  .wordmark i {
+    display: inline-block;
+    border-radius: 999px;
+    background: var(--accent);
+    font-style: normal;
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .eyebrow--onink { color: rgba(255,255,255,.5); }
+  .eyebrow--accent { color: var(--accent); }
+
+  .frame-title {
+    font-family: var(--serif);
+    font-weight: 400;
+    letter-spacing: -.03em;
+    line-height: .98;
+  }
+  .frame-title em { font-style: normal; color: var(--accent); }
+
+  .frame-sub {
+    font-size: 20px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+  }
+
+  .pad-64 { padding: 64px; }
+
+  /* The product mock that stands in for "your screenshot" everywhere. */
+  .shot {
+    width: 100%;
+    background: #fff;
+    overflow: hidden;
+    border-radius: 10px;
+  }
+  .shot-bar {
+    display: flex; align-items: center; gap: 6px;
+    padding: 9px 12px;
+    background: #f5f5f5;
+    border-bottom: 1px solid #eaeaea;
+  }
+  .shot-bar span { width: 9px; height: 9px; border-radius: 999px; display: block; }
+  .shot-bar.dark { background: #2a2a2a; border-bottom-color: #3a3a3a; }
+  .shot-body { padding: 22px 24px; }
+  .shot-kicker {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--ink-faint); margin-bottom: 6px;
+  }
+  .shot-figure {
+    font-family: var(--serif); font-size: 44px; font-weight: 500;
+    letter-spacing: -.02em; line-height: 1; margin-bottom: 14px;
+  }
+  .shot-delta { display: flex; align-items: center; gap: 9px; margin-bottom: 20px; }
+  .shot-delta b {
+    background: #d4f4dd; color: #1f7a3e; font-family: var(--mono);
+    font-size: 11px; font-weight: 500; padding: 3px 7px; border-radius: 3px;
+  }
+  .shot-delta span { font-family: var(--mono); font-size: 12px; color: var(--ink-faint); }
+  .shot-bars { display: flex; align-items: flex-end; gap: 5px; height: 74px; }
+  .shot-bars i { flex: 1; border-radius: 3px; background: rgba(26,26,26,.14); display: block; }
+  .shot-bars i:last-child { background: var(--accent); }
+
+  /* Brand Kit handle pill, matching the editor's export badge. */
+  .badge {
+    position: absolute;
+    border-radius: 999px;
+    padding: 7px 14px;
+    font-family: var(--mono);
+    font-size: 15px;
+    letter-spacing: .02em;
+    line-height: 1.2;
+    background: rgba(26,26,26,.9);
+    color: #fff;
+    z-index: 2;
+  }
+  .badge small { display: block; font-size: 11px; opacity: .6; }
+  .badge--light { background: rgba(255,255,255,.92); color: var(--ink); }
+
+  .chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    border: 1px solid var(--line); background: var(--bg-alt);
+    border-radius: 999px; padding: 8px 16px;
+    font-family: var(--mono); font-size: 13px; letter-spacing: .04em;
+    color: var(--ink-soft);
+  }
+  .chip--on { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+  .chip--accent { background: rgba(217,79,46,.08); border-color: rgba(217,79,46,.35); color: var(--accent); }
+
+  .note-strip {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    padding: 18px 64px;
+    border-top: 1px solid var(--line);
+    background: var(--bg);
+    font-family: var(--mono); font-size: 14px; letter-spacing: .04em;
+    color: var(--ink-faint);
+    z-index: 2;
+  }
+  .note-strip em { font-style: normal; color: var(--accent); }
+
+  /* ---------- background palette (real values from lib/backgrounds.ts) ---------- */
+  .bg-peach   { background: radial-gradient(circle at 30% 20%, #fce4b6, transparent 50%), radial-gradient(circle at 80% 80%, #e8a598, transparent 50%), linear-gradient(135deg, #f4c896, #d98a7a); }
+  .bg-ember   { background: linear-gradient(135deg, #d94f2e, #b33a1e); }
+  .bg-forest  { background: linear-gradient(135deg, #2d3b3a, #0f1816); }
+  .bg-mint    { background: linear-gradient(135deg, #d9ece2, #bfddcf); }
+  .bg-twilight{ background: radial-gradient(circle at 25% 80%, #d94f2e40, transparent 55%), radial-gradient(circle at 75% 25%, #4a6b8c60, transparent 55%), linear-gradient(135deg, #1a1a2e, #0d1020); }
+  .bg-sunset  { background: radial-gradient(circle at 20% 20%, #ffd5a8, transparent 55%), radial-gradient(circle at 80% 30%, #ff9a8b, transparent 55%), radial-gradient(circle at 60% 80%, #a66ea0, transparent 55%), linear-gradient(135deg, #ffb088, #c96a7d); }
+  .bg-aurora  { background: radial-gradient(circle at 25% 30%, #9fd9c9, transparent 55%), radial-gradient(circle at 75% 20%, #6a9fd1, transparent 55%), radial-gradient(circle at 60% 80%, #9d7fd1, transparent 55%), linear-gradient(135deg, #4a6b8c, #2a3f5a); }
+  .bg-berry   { background: radial-gradient(circle at 20% 30%, #f0a9c2, transparent 55%), radial-gradient(circle at 80% 70%, #9a5ba0, transparent 55%), linear-gradient(135deg, #c86f91, #5a2b5c); }
+  .bg-sage    { background: linear-gradient(135deg, #b5c3a5, #7d8b6f); }
+  .bg-ocean   { background: linear-gradient(135deg, #4a8fa8, #1f3d5a); }
+  .bg-lilac   { background: linear-gradient(135deg, #e8e0ed, #cfc0db); }
+  .bg-sand    { background: linear-gradient(180deg, #e5deca, #c1b799); }
+  .bg-noir    { background: #1a1a1a; }
+  .bg-stone   { background: linear-gradient(135deg, #e8e3d8, #c9c2b0); }
+  .bg-plum    { background: linear-gradient(135deg, #6b4a72, #2e1a36); }
+  .bg-citrus  { background: radial-gradient(circle at 30% 30%, #fff4a3, transparent 55%), radial-gradient(circle at 80% 70%, #c7d86b, transparent 55%), linear-gradient(135deg, #f6e38e, #9fb04e); }
+  .bg-lagoon  { background: linear-gradient(135deg, #7ab8a8, #3b6e68); }
+  .bg-rose    { background: linear-gradient(135deg, #eba1ad, #c4566b); }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%);
+    background: var(--ink); color: var(--bg);
+    padding: 12px 22px; border-radius: 999px;
+    font-size: 13px; font-weight: 500;
+    opacity: 0; pointer-events: none; transition: opacity .2s ease;
+    z-index: 50;
+  }
+  .toast.on { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="sheet">
+
+  <header class="sheet-head">
+    <div>
+      <h1>Postabl — launch assets</h1>
+      <p>
+        Fourteen 16:9 frames in the real brand system. Each exports at
+        1920&times;1080 PNG, ready to cut into a launch video. Hit
+        <b>Download all</b> and they land in your downloads folder in order.
+      </p>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn--solid" id="dl-all">Download all (PNG)</button>
+      <button class="btn" id="toggle-grain">Toggle grain</button>
+    </div>
+  </header>
+
+  <!-- ============ 01 — LOGO, LIGHT ============ -->
+  <section class="asset">
+    <div class="asset-bar">
+      <div class="asset-label"><b>01</b> — Logo · light</div>
+      <button class="btn" data-dl="01-logo-light">Download</button>
+    </div>
+    <div class="stage">
+      <div class="frame" style="display:flex;align-items:center;justify-content:center;flex-direction:column;gap:34px;">
+        <div class="grain"></div>
+        <div class="wordmark" style="font-size:150px;">
+          postabl<i style="width:19px;height:19px;"></i>
+        </div>
+        <div class="eyebrow">Make your screenshots postabl</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 02 — LOGO, INK ============ -->
+  <section class="asset">
+    <div class="asset-bar">
+      <div class="asset-label"><b>02</b> — Logo · ink</div>
+      <button class="btn" data-dl="02-logo-ink">Download</button>
+    </div>
+    <div class="stage">
+      <div class="frame" style="background:var(--ink);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:34px;">
+        <div class="wordmark" style="font-size:150px;color:var(--bg);">
+          postabl<i style="width:19px;height:19px;"></i>
+        </div>
+        <div class="eyebrow eyebrow--onink">postabl.xyz</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 03 — TITLE CARD ============ -->
+  <section class="asset">
+    <div class="asset-bar">
+      <div class="asset-label"><b>03</b> — Title card · opening line</div>
+      <button class="btn" data-dl="03-title-card">Download</button>
+    </div>
+    <div class="stage">
+      <div class="frame pad-64" style="display:flex;flex-direction:column;justify-content:center;">
+        <div class="grain"></div>
+        <div class="chip chip--accent" style="align-self:flex-start;margin-bottom:34px;">
+          Launch — 33% off lifetime
+        </div>
+        <div class="frame-title" style="font-size:104px;">
+          Make your<br />screenshots <em>postabl.</em>
+        </div>
+        <div class="frame-sub" style="margin-top:34px;max-width:640px;">
+          The fastest way to turn raw screenshots into scroll-stopping images
+          for X, LinkedIn, and the rest of the internet.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 04 — BEFORE / AFTER ============ -->
+  <section class="asset">
+    <div class="asset-bar">
+      <div class="asset-label"><b>04</b> — Before &rarr; after · the core promise</div>
+      <button class="btn" data-dl="04-before-after">Download</button>
+    </div>
+    <div class="stage">
+      <div class="frame" style="display:grid;grid-template-columns:1fr 1fr;">
+        <div class="grain"></div>
+
+        <div style="display:flex;flex-direction:column;border-right:1px solid var(--line);">
+          <div style="display:flex;justify-content:space-between;padding:18px 30px;border-bottom:1px solid var(--line);background:var(--bg-alt);">
+            <span class="eyebrow" style="font-size:12px;"><b style="color:var(--ink);">01</b> Before</span>
+            <span class="eyebrow" style="font-size:12px;">raw-capture.png</span>
+          </div>
+          <div style="flex:1;display:flex;align-items:center;background:#fff;">
+            <div class="shot" style="border-radius:0;">
+              <div class="shot-body">
+                <div class="shot-kicker">MRR · This month</div>
+                <div class="shot-figure">$12,480</div>
+                <div class="shot-delta"><b>&uarr; 23%</b><span>vs last month</span></div>
+                <div class="shot-bars">
+                  <i style="height:30%"></i><i style="height:48%"></i><i style="height:42%"></i><i style="height:58%"></i>
+                  <i style="height:52%"></i><i style="height:68%"></i><i style="height:72%"></i><i style="height:85%"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="padding:16px 30px;border-top:1px solid var(--line);font-family:var(--mono);font-size:13px;color:var(--ink-faint);">
+            Flat. Cramped. Scroll-past material.
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;">
+          <div style="display:flex;justify-content:space-between;padding:18px 30px;border-bottom:1px solid var(--line);background:var(--bg-alt);">
+            <span class="eyebrow" style="font-size:12px;"><b style="color:var(--accent);">02</b> After</span>
+            <span class="eyebrow" style="font-size:12px;">postabl-export.png</span>
+          </div>
+          <div class="bg-peach" style="position:relative;flex:1;display:flex;align-items:center;justify-content:center;padding:54px;">
+            <div class="shot" style="max-width:430px;box-shadow:var(--shadow-screenshot);">
+              <div class="shot-bar"><span style="background:#ff5f57"></span><span style="background:#febc2e"></span><span style="background:#28c840"></span></div>
+              <div class="shot-body">
+                <div class="shot-kicker">MRR · This month</div>
+                <div class="shot-figure">$12,480</div>
+                <div class="shot-delta"><b>&uarr; 23%</b><span>vs last month</span></div>
+                <div class="shot-bars">
+                  <i style="height:30%"></i><i style="height:48%"></i><i style="height:42%"></i><i style="height:58%"></i>
+                  <i style="height:52%"></i><i style="height:68%"></i><i style="height:72%"></i><i style="height:85%"></i>
+                </div>
+              </div>
+            </div>
+            <div class="badge" style="right:20px;bottom:20px;">@soham_nayak04</div>
+          </div>
+          <div style="padding:16px 30px;border-top:1px solid var(--line);font-family:var(--mono);font-size:13px;color:var(--ink-faint);">
+            Framed. Breathing. <span style="color:var(--accent)">Actually postabl.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 05 — BACKGROUND WALL ============ -->
+  <section class="asset">
+    <div class="asset-bar">
+      <div class="asset-label"><b>05</b> — Backgrounds · 36 to pick from</div>
+      <button class="btn" data-dl="05-background-wall">Download</button>
+    </div>
+    <div class="stage">
+      <div class="frame pad-64" style="display:flex;flex-direction:column;justify-content:center;gap:44px;">
+        <div class="grain"></div>
+        <div>
+          <div class="eyebrow eyebrow--accent" style="margin-bottom:18px;">/ Backgrounds</div>
+          <div class="frame-title" style="font-size:72px;">Backgrounds that <em>breathe.</em></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(9,1fr);gap:14px;">
+          <div class="bg-peach"    style="aspect-ratio:1;border-radius:12px;"></div>
+          <div class="bg-sunset"   style="aspect-ratio:1;border-radius:12px;"></div>
+          <div class="bg-ember"    style="aspect-ratio:1;border-radius:12px;"></div>
+          <div class="bg-rose"     style="aspect-ratio:1;border-radius:12px;"></div>
+          <div class="bg-berry"    style="aspect-ratio:1;border-radius:12px;"></div>
+          <div class="bg-plum"     style="aspect-ratio:1;border-radius:12px;"></div>
+          <div class="bg-twilight" style="aspect-ratio:1;border-radius:12px;"></div>
+          <div class="bg-ocean"    style="aspect-ratio:1;border-radius:12px;"></div>
+          <div class="bg-aurora"   style="aspect-ratio:1;border-radius:12px;"></div>
+          <div class="bg-lagoon"   style="aspect-ratio:1;border-radius:12px;"></div>
+          <div class="bg-mint"     style="aspect-ratio:1;border-radius:12px;"></div>
+          <div class="bg-sage"     style="aspect-ratio:1;border-radius:12px;"></div>
+          <div class="bg-citrus"   style="aspect-ratio:1;border-radius:12px;"></div>
+          <div class="bg-forest"   style="aspect-ratio:1;border-radius:12px;"></div>
+          <div class="bg-sand"     style="aspect-ratio:1;border-radius:12px;"></div>
+          <div class="bg-stone"    style="aspect-ratio:1;border-radius:12px;"></div>
+          <div class="bg-lilac"    style="aspect-ratio:1;border-radius:12px;"></div>
+          <div class="bg-noir"     style="aspect-ratio:1;border-radius:12px;"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 06 — SAME SHOT, FOUR BACKGROUNDS ============ -->
+  <section class="asset">
+    <div class="asset-bar">
+      <div class="asset-label"><b>06</b> — One screenshot · four moods</div>
+      <button class="btn" data-dl="06-four-moods">Download</button>
+    </div>
+    <div class="stage">
+      <div class="frame" style="display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;" id="four-moods">
+        <!-- filled by script: four .bg-* tiles each holding a mini shot -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 07 — PADDING ============ -->
+  <section class="asset">
+    <div class="asset-bar">
+      <div class="asset-label"><b>07</b> — Padding · S / M / L / XL</div>
+      <button class="btn" data-dl="07-padding">Download</button>
+    </div>
+    <div class="stage">
+      <div class="frame pad-64" style="display:flex;flex-direction:column;justify-content:center;gap:44px;">
+        <div class="grain"></div>
+        <div>
+          <div class="eyebrow eyebrow--accent" style="margin-bottom:18px;">/ Padding</div>
+          <div class="frame-title" style="font-size:72px;">Padding, <em>done right.</em></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px;" id="padding-row"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 08 — SHADOWS ============ -->
+  <section class="asset">
+    <div class="asset-bar">
+      <div class="asset-label"><b>08</b> — Shadows · None / Soft / Deep / Lift</div>
+      <button class="btn" data-dl="08-shadows">Download</button>
+    </div>
+    <div class="stage">
+      <div class="frame pad-64" style="display:flex;flex-direction:column;justify-content:center;gap:44px;">
+        <div class="grain"></div>
+        <div>
+          <div class="eyebrow eyebrow--accent" style="margin-bottom:18px;">/ Shadows</div>
+          <div class="frame-title" style="font-size:72px;">Shadows with <em>taste.</em></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:24px;" id="shadow-row"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 09 — WINDOW CHROME ============ -->
+  <section class="asset">
+    <div class="asset-bar">
+      <div class="asset-label"><b>09</b> — Window chrome · light / dark / none</div>
+      <button class="btn" data-dl="09-window-chrome">Download</button>
+    </div>
+    <div class="stage">
+      <div class="frame pad-64" style="display:flex;flex-direction:column;justify-content:center;gap:44px;">
+        <div class="grain"></div>
+        <div>
+          <div class="eyebrow eyebrow--accent" style="margin-bottom:18px;">/ Window style</div>
+          <div class="frame-title" style="font-size:72px;">Chrome, <em>or none at all.</em></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:26px;">
+          <div class="bg-stone" style="border-radius:14px;padding:34px;display:flex;flex-direction:column;gap:16px;">
+            <div class="shot" style="box-shadow:var(--shadow-screenshot);">
+              <div class="shot-bar"><span style="background:#ff5f57"></span><span style="background:#febc2e"></span><span style="background:#28c840"></span></div>
+              <div style="height:96px;background:#fff;"></div>
+            </div>
+            <span class="eyebrow" style="font-size:12px;">macOS light</span>
+          </div>
+          <div class="bg-forest" style="border-radius:14px;padding:34px;display:flex;flex-direction:column;gap:16px;">
+            <div class="shot" style="box-shadow:var(--shadow-screenshot);">
+              <div class="shot-bar dark"><span style="background:#ff5f57"></span><span style="background:#febc2e"></span><span style="background:#28c840"></span></div>
+              <div style="height:96px;background:#1e1e1e;"></div>
+            </div>
+            <span class="eyebrow eyebrow--onink" style="font-size:12px;">macOS dark</span>
+          </div>
+          <div class="bg-lilac" style="border-radius:14px;padding:34px;display:flex;flex-direction:column;gap:16px;">
+            <div class="shot" style="box-shadow:var(--shadow-screenshot);">
+              <div style="height:129px;background:#fff;"></div>
+            </div>
+            <span class="eyebrow" style="font-size:12px;">No chrome</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 10 — BRAND KIT ============ -->
+  <section class="asset">
+    <div class="asset-bar">
+      <div class="asset-label"><b>10</b> — Brand Kit · the flagship Pro feature</div>
+      <button class="btn" data-dl="10-brand-kit">Download</button>
+    </div>
+    <div class="stage">
+      <div class="frame" style="display:grid;grid-template-columns:1.05fr 1fr;">
+        <div class="grain"></div>
+        <div class="pad-64" style="display:flex;flex-direction:column;justify-content:center;gap:30px;">
+          <div class="chip chip--accent" style="align-self:flex-start;">Pro feature</div>
+          <div class="frame-title" style="font-size:76px;">Set it once.<br /><em>Signed forever.</em></div>
+          <div class="frame-sub" style="max-width:440px;">
+            Your handle rides along on every image you export. No re-typing,
+            no forgetting, no screenshot going out uncredited.
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:10px;">
+            <span class="chip">Padding M</span>
+            <span class="chip">Shadow Deep</span>
+            <span class="chip">Ratio Auto</span>
+          </div>
+        </div>
+        <div class="bg-twilight" style="position:relative;display:flex;align-items:center;justify-content:center;padding:64px;">
+          <div class="shot" style="max-width:410px;box-shadow:var(--shadow-screenshot);">
+            <div class="shot-bar"><span style="background:#ff5f57"></span><span style="background:#febc2e"></span><span style="background:#28c840"></span></div>
+            <div class="shot-body">
+              <div class="shot-kicker">MRR · This month</div>
+              <div class="shot-figure">$12,480</div>
+              <div class="shot-delta"><b>&uarr; 23%</b><span>vs last month</span></div>
+              <div class="shot-bars">
+                <i style="height:30%"></i><i style="height:48%"></i><i style="height:42%"></i><i style="height:58%"></i>
+                <i style="height:52%"></i><i style="height:68%"></i><i style="height:72%"></i><i style="height:85%"></i>
+              </div>
+            </div>
+          </div>
+          <div class="badge" style="right:26px;bottom:26px;">
+            @soham_nayak04<small>postabl.xyz</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 11 — XSHARE PROFILE CARDS ============ -->
+  <section class="asset">
+    <div class="asset-bar">
+      <div class="asset-label"><b>11</b> — X profile cards · /xshare</div>
+      <button class="btn" data-dl="11-xshare">Download</button>
+    </div>
+    <div class="stage">
+      <div class="frame pad-64" style="display:flex;flex-direction:column;justify-content:center;gap:40px;">
+        <div class="grain"></div>
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:40px;">
+          <div>
+            <div class="eyebrow eyebrow--accent" style="margin-bottom:18px;">/ New — profile cards</div>
+            <div class="frame-title" style="font-size:72px;">Your profile, <em>framed.</em></div>
+          </div>
+          <div class="frame-sub" style="max-width:300px;text-align:right;font-size:17px;">
+            Paste any X profile. Get a card worth posting.
+          </div>
+        </div>
+        <div class="bg-sunset" style="border-radius:16px;padding:44px;display:flex;justify-content:center;">
+          <!-- Studio layout, same proportions as components/xshare-card.tsx -->
+          <div style="width:660px;aspect-ratio:16/9;background:var(--bg);border-radius:14px;overflow:hidden;position:relative;box-shadow:var(--shadow-screenshot);">
+            <div style="position:absolute;inset:0 0 auto 0;height:5px;background:var(--accent);"></div>
+            <div style="display:flex;gap:22px;height:100%;padding:26px;">
+              <div style="width:36%;border-radius:9px;border:1px solid var(--line);background:linear-gradient(150deg,#c9a227,#5a4a1e 60%,#2a2418);"></div>
+              <div style="flex:1;display:flex;flex-direction:column;justify-content:space-between;min-width:0;">
+                <div>
+                  <div style="display:flex;align-items:flex-start;gap:9px;">
+                    <span style="font-family:var(--serif);font-size:44px;font-weight:500;letter-spacing:-.02em;line-height:1;">Soham</span>
+                    <span style="margin-top:7px;width:20px;height:20px;border-radius:6px;background:var(--accent);display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:12px;">&check;</span>
+                  </div>
+                  <div style="font-family:var(--mono);font-size:14px;color:var(--ink-faint);margin-top:8px;">@soham_nayak04</div>
+                </div>
+                <div>
+                  <div style="height:1px;background:linear-gradient(90deg,var(--accent),var(--line-strong),transparent);margin-bottom:16px;"></div>
+                  <div style="display:flex;align-items:flex-end;justify-content:space-between;">
+                    <div style="display:flex;gap:38px;">
+                      <div>
+                        <div style="font-family:var(--serif);font-size:34px;font-weight:500;line-height:1;">3.2K</div>
+                        <div style="font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-top:5px;">Followers</div>
+                      </div>
+                      <div>
+                        <div style="font-family:var(--serif);font-size:34px;font-weight:500;line-height:1;">2K</div>
+                        <div style="font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-top:5px;">Following</div>
+                      </div>
+                    </div>
+                    <span class="wordmark" style="font-size:17px;color:var(--ink-faint);">postabl<i style="width:5px;height:5px;"></i></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 12 — EXPORT ============ -->
+  <section class="asset">
+    <div class="asset-bar">
+      <div class="asset-label"><b>12</b> — Export · formats &amp; scale</div>
+      <button class="btn" data-dl="12-export">Download</button>
+    </div>
+    <div class="stage">
+      <div class="frame pad-64" style="display:flex;flex-direction:column;justify-content:center;gap:44px;">
+        <div class="grain"></div>
+        <div>
+          <div class="eyebrow eyebrow--accent" style="margin-bottom:18px;">/ Export</div>
+          <div class="frame-title" style="font-size:72px;">Export that <em>ships.</em></div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:14px;max-width:820px;">
+          <span class="chip chip--on">PNG · lossless</span>
+          <span class="chip">JPG · smaller</span>
+          <span class="chip">WEBP · modern</span>
+          <span class="chip">1&times;</span>
+          <span class="chip chip--on">2&times;</span>
+          <span class="chip">4&times; retina</span>
+          <span class="chip">Copy to clipboard</span>
+          <span class="chip">No watermark, ever</span>
+        </div>
+        <div class="frame-sub" style="max-width:620px;">
+          Paste, tweak, download. Works in your browser, no account required,
+          2 free downloads a day.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 13 — FEATURE GRID ============ -->
+  <section class="asset">
+    <div class="asset-bar">
+      <div class="asset-label"><b>13</b> — Feature grid · the whole product</div>
+      <button class="btn" data-dl="13-feature-grid">Download</button>
+    </div>
+    <div class="stage">
+      <div class="frame pad-64" style="display:flex;flex-direction:column;justify-content:center;gap:38px;">
+        <div class="grain"></div>
+        <div class="frame-title" style="font-size:64px;">Small tool. <em>Big difference.</em></div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden;" id="feature-grid"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 14 — END CARD ============ -->
+  <section class="asset">
+    <div class="asset-bar">
+      <div class="asset-label"><b>14</b> — End card · CTA</div>
+      <button class="btn" data-dl="14-end-card">Download</button>
+    </div>
+    <div class="stage">
+      <div class="frame" style="background:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:38px;">
+        <div class="wordmark" style="font-size:108px;color:var(--bg);">
+          postabl<i style="width:14px;height:14px;"></i>
+        </div>
+        <div style="font-family:var(--serif);font-size:42px;font-weight:400;color:var(--bg);letter-spacing:-.02em;text-align:center;line-height:1.15;max-width:780px;">
+          Stop posting <em style="font-style:normal;color:var(--accent);">ugly</em> screenshots.<br />You&rsquo;re better than that.
+        </div>
+        <div style="display:flex;gap:14px;margin-top:8px;">
+          <span class="chip" style="background:var(--bg);border-color:var(--bg);color:var(--ink);">postabl.xyz</span>
+          <span class="chip" style="background:transparent;border-color:rgba(255,255,255,.25);color:rgba(255,255,255,.75);">Free to start</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.13/dist/html-to-image.min.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var SHOT_INNER =
+    '<div class="shot-bar"><span style="background:#ff5f57"></span>' +
+    '<span style="background:#febc2e"></span><span style="background:#28c840"></span></div>' +
+    '<div class="shot-body"><div class="shot-kicker">MRR · This month</div>' +
+    '<div class="shot-figure" style="font-size:26px;margin-bottom:9px;">$12,480</div>' +
+    '<div class="shot-delta" style="margin-bottom:12px;"><b>&uarr; 23%</b></div>' +
+    '<div class="shot-bars" style="height:40px;">' +
+    '<i style="height:30%"></i><i style="height:48%"></i><i style="height:42%"></i><i style="height:58%"></i>' +
+    '<i style="height:52%"></i><i style="height:68%"></i><i style="height:72%"></i><i style="height:85%"></i></div></div>';
+
+  // ---- 06: one screenshot, four backgrounds ----
+  var moods = [
+    { cls: "bg-peach",    label: "Peach",    dark: false },
+    { cls: "bg-twilight", label: "Twilight", dark: true  },
+    { cls: "bg-mint",     label: "Mint",     dark: false },
+    { cls: "bg-ember",    label: "Ember",    dark: true  }
+  ];
+  var moodHost = document.getElementById("four-moods");
+  moods.forEach(function (m) {
+    var tile = document.createElement("div");
+    tile.className = m.cls;
+    tile.style.cssText =
+      "position:relative;display:flex;align-items:center;justify-content:center;padding:44px;";
+    tile.innerHTML =
+      '<div class="shot" style="max-width:290px;box-shadow:var(--shadow-screenshot);">' + SHOT_INNER + "</div>" +
+      '<span style="position:absolute;left:22px;bottom:18px;font-family:var(--mono);font-size:12px;' +
+      "letter-spacing:.14em;text-transform:uppercase;color:" +
+      (m.dark ? "rgba(255,255,255,.6)" : "rgba(26,26,26,.5)") + ';">' + m.label + "</span>";
+    moodHost.appendChild(tile);
+  });
+
+  // ---- 07: padding steps ----
+  var pads = [
+    { label: "S", px: 14 },
+    { label: "M", px: 28 },
+    { label: "L", px: 44 },
+    { label: "XL", px: 62 }
+  ];
+  var padHost = document.getElementById("padding-row");
+  pads.forEach(function (p) {
+    var cell = document.createElement("div");
+    cell.innerHTML =
+      '<div class="bg-peach" style="border-radius:12px;padding:' + p.px + 'px;' +
+      'aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;">' +
+      '<div style="width:100%;height:100%;background:#fff;border-radius:7px;box-shadow:var(--shadow-screenshot);"></div></div>' +
+      '<div class="eyebrow" style="font-size:12px;margin-top:12px;">' + p.label + " · " + p.px * 2 + "px</div>";
+    padHost.appendChild(cell);
+  });
+
+  // ---- 08: shadow presets ----
+  var shadows = [
+    { label: "None", css: "none" },
+    { label: "Soft", css: "0 18px 34px -14px rgba(0,0,0,.28)" },
+    { label: "Deep", css: "0 42px 80px -18px rgba(0,0,0,.45), 0 0 0 1px rgba(0,0,0,.05)" },
+    { label: "Lift", css: "0 60px 60px -40px rgba(0,0,0,.55)" }
+  ];
+  var shadowHost = document.getElementById("shadow-row");
+  shadows.forEach(function (s) {
+    var cell = document.createElement("div");
+    cell.innerHTML =
+      '<div class="bg-stone" style="border-radius:12px;padding:34px 26px 44px;' +
+      'aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;">' +
+      '<div style="width:100%;height:70%;background:#fff;border-radius:7px;box-shadow:' + s.css + ';"></div></div>' +
+      '<div class="eyebrow" style="font-size:12px;margin-top:12px;">' + s.label + "</div>";
+    shadowHost.appendChild(cell);
+  });
+
+  // ---- 13: feature grid ----
+  var features = [
+    ["01", "Backgrounds that breathe", "36 hand-picked gradients, solids and patterns."],
+    ["02", "Padding, done right", "Frames that feel balanced without fiddling."],
+    ["03", "Shadows with taste", "Soft, deep, lift. Never the default dropshadow."],
+    ["04", "Window chrome", "macOS, iOS, Windows, or nothing at all."],
+    ["05", "Brand kit", "Your handle on every export, automatically."],
+    ["06", "Zero fluff", "Paste, tweak, download. No forced onboarding."]
+  ];
+  var gridHost = document.getElementById("feature-grid");
+  features.forEach(function (f) {
+    var cell = document.createElement("div");
+    cell.style.cssText = "background:var(--bg);padding:30px 28px;";
+    cell.innerHTML =
+      '<div style="font-family:var(--mono);font-size:12px;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:34px;">' + f[0] + "</div>" +
+      '<div style="font-family:var(--serif);font-size:27px;font-weight:500;letter-spacing:-.02em;line-height:1.1;margin-bottom:9px;">' + f[1] + "</div>" +
+      '<div style="font-size:15px;line-height:1.5;color:var(--ink-soft);">' + f[2] + "</div>";
+    gridHost.appendChild(cell);
+  });
+
+  // ---- fit each 1280x720 frame into its responsive stage ----
+  function fit() {
+    var stages = document.querySelectorAll(".stage");
+    for (var i = 0; i < stages.length; i++) {
+      var frame = stages[i].querySelector(".frame");
+      if (frame) frame.style.transform = "scale(" + stages[i].clientWidth / 1280 + ")";
+    }
+  }
+  fit();
+  window.addEventListener("resize", fit);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+
+  // ---- grain toggle (some editors prefer clean plates) ----
+  var grainOn = true;
+  document.getElementById("toggle-grain").addEventListener("click", function () {
+    grainOn = !grainOn;
+    var g = document.querySelectorAll(".grain");
+    for (var i = 0; i < g.length; i++) g[i].style.display = grainOn ? "" : "none";
+    toast(grainOn ? "Grain on" : "Grain off");
+  });
+
+  var toastEl = document.getElementById("toast");
+  var toastTimer;
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add("on");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.classList.remove("on"); }, 1800);
+  }
+
+  var exporter = window.htmlToImage;
+
+  // The frame is scaled for display only; html-to-image clones the node at
+  // its true 1280x720 box, so pixelRatio 1.5 lands exactly on 1920x1080.
+  //
+  // skipFonts: the only @font-face source here is the cross-origin Google
+  // Fonts sheet, which html-to-image can't read — attempting to inline it
+  // just throws a SecurityError per export. The browser rasterises with
+  // the already-loaded faces regardless, so the PNG is unchanged.
+  function download(frame, name) {
+    return exporter
+      .toPng(frame, { pixelRatio: 1.5, cacheBust: true, skipFonts: true })
+      .then(function (dataUrl) {
+        var a = document.createElement("a");
+        a.href = dataUrl;
+        a.download = "postabl-" + name + ".png";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      });
+  }
+
+  var buttons = document.querySelectorAll("[data-dl]");
+
+  if (!exporter) {
+    for (var b = 0; b < buttons.length; b++) buttons[b].disabled = true;
+    document.getElementById("dl-all").disabled = true;
+    toast("PNG export needs an internet connection — screen-record instead.");
+  } else {
+    for (var k = 0; k < buttons.length; k++) {
+      (function (btn) {
+        btn.addEventListener("click", function () {
+          var frame = btn.closest(".asset").querySelector(".frame");
+          btn.disabled = true;
+          btn.textContent = "Rendering…";
+          download(frame, btn.dataset.dl)
+            .then(function () { toast("Saved postabl-" + btn.dataset.dl + ".png"); })
+            .catch(function () { toast("Couldn't render that frame."); })
+            .then(function () { btn.disabled = false; btn.textContent = "Download"; });
+        });
+      })(buttons[k]);
+    }
+
+    document.getElementById("dl-all").addEventListener("click", function () {
+      var all = document.getElementById("dl-all");
+      all.disabled = true;
+      var i = 0;
+      // Sequential, with a beat between saves — browsers throttle or drop
+      // a burst of simultaneous downloads.
+      function next() {
+        if (i >= buttons.length) {
+          all.disabled = false;
+          all.textContent = "Download all (PNG)";
+          toast("All " + buttons.length + " frames saved.");
+          return;
+        }
+        var btn = buttons[i++];
+        all.textContent = "Rendering " + i + "/" + buttons.length + "…";
+        download(btn.closest(".asset").querySelector(".frame"), btn.dataset.dl)
+          .catch(function () {})
+          .then(function () { setTimeout(next, 400); });
+      }
+      next();
+    });
+  }
+})();
+</script>
+</body>
+</html>

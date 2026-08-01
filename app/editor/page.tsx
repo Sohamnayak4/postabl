@@ -858,6 +858,24 @@ function EditorContent() {
           <div className="hidden font-mono text-xs tracking-wide text-ink-soft md:block">
             screenshot_01 <span className="text-ink-faint">/ untitled</span>
           </div>
+          {/* Entry point to the X profile-card builder. Lives in the left
+              group rather than the account menu so anonymous visitors —
+              who never open that menu — can still find it. */}
+          <Link
+            href="/xshare"
+            title="Make a card from an X profile"
+            className="inline-flex items-center gap-1.5 rounded-full border border-line bg-bg-alt px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-ink-soft transition-colors hover:border-ink hover:text-ink"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="h-2.5 w-2.5"
+              aria-hidden
+            >
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+            </svg>
+            Card
+          </Link>
         </div>
         <div className="flex items-center gap-2 md:gap-4">
           {/* Downloads pill is only meaningful for signed-in users —
@@ -1001,6 +1019,13 @@ function EditorContent() {
                     className="block w-full px-3.5 py-2.5 text-left text-[13px] text-ink-soft transition-colors hover:bg-bg-alt hover:text-ink"
                   >
                     Your saved
+                  </Link>
+                  <Link
+                    href="/xshare"
+                    onClick={() => setUserMenuOpen(false)}
+                    className="block w-full px-3.5 py-2.5 text-left text-[13px] text-ink-soft transition-colors hover:bg-bg-alt hover:text-ink"
+                  >
+                    X profile card
                   </Link>
                   {/* Upgrade sits in the top bar on desktop; surface it in
                       the menu only on mobile, where the bar has no room. */}
