@@ -8,6 +8,13 @@
 // internals and makes schema evolution cheap. The editor validates the
 // values when applying.
 
+import {
+  encodeCustomBackground,
+  isCustomBackgroundId,
+  parseCustomBackground,
+  sanitizeCustomBackgrounds,
+} from "@/lib/custom-background";
+
 export type BadgePosition = "tl" | "tr" | "bl" | "br";
 export type BadgeStyle = "light" | "dark";
 
@@ -20,7 +27,13 @@ export type BrandKit = {
   badgeIncludeWatermark: boolean;
 
   // Editor defaults applied on fresh sessions (no screenshot loaded).
+  // May be a built-in preset id or an encoded `custom:*` id.
   defaultBgId: string;
+
+  // The user's own saved colours, as encoded custom-background ids. Capped
+  // at MAX_CUSTOM_BACKGROUNDS. Lives here (rather than in localStorage) so a
+  // brand palette follows the account across devices, same as the badge.
+  customBackgrounds: string[];
   defaultPadding: number;
   defaultPaddingPreset: "S" | "M" | "L" | "XL";
   defaultShadowPreset: "None" | "Soft" | "Deep" | "Lift";
@@ -35,6 +48,7 @@ export const DEFAULT_BRAND_KIT: BrandKit = {
   badgeStyle: "dark",
   badgeIncludeWatermark: false,
   defaultBgId: "peach",
+  customBackgrounds: [],
   defaultPadding: 60,
   defaultPaddingPreset: "M",
   defaultShadowPreset: "Deep",
@@ -67,6 +81,26 @@ function clamp(n: unknown, min: number, max: number, fallback: number): number {
   return Math.min(max, Math.max(min, v));
 }
 
+// Background ids get two different treatments, and the split is the whole
+// security story for this field.
+//
+// A `custom:*` id is the only kind that becomes a raw CSS `background` value,
+// so it has to survive a strict parse or we drop it — that's what stops a
+// doctored payload putting `url(...)` (or anything else) into a style
+// attribute. Every other id is just a lookup key: `findBackground()` falls
+// back to the first preset when it doesn't recognise one, so an unknown value
+// is inert and we only need to bound its length. Keeping it opaque also means
+// this module doesn't have to import the preset table, in line with the note
+// at the top of the file.
+function pickBgId(raw: unknown): string {
+  if (typeof raw !== "string" || raw.length === 0) return "peach";
+  if (isCustomBackgroundId(raw)) {
+    const parsed = parseCustomBackground(raw);
+    return parsed ? encodeCustomBackground(parsed) : "peach";
+  }
+  return raw.slice(0, 64);
+}
+
 // Coerces an untrusted payload into a valid BrandKit. Used by the
 // server route before writing and by the client after fetching.
 export function sanitizeBrandKit(raw: unknown): BrandKit {
@@ -78,10 +112,8 @@ export function sanitizeBrandKit(raw: unknown): BrandKit {
     badgePosition: pickEnum(r.badgePosition, BADGE_POSITIONS, "br"),
     badgeStyle: pickEnum(r.badgeStyle, BADGE_STYLES, "dark"),
     badgeIncludeWatermark: Boolean(r.badgeIncludeWatermark),
-    defaultBgId:
-      typeof r.defaultBgId === "string" && r.defaultBgId.length > 0
-        ? r.defaultBgId.slice(0, 64)
-        : "peach",
+    defaultBgId: pickBgId(r.defaultBgId),
+    customBackgrounds: sanitizeCustomBackgrounds(r.customBackgrounds),
     defaultPadding: clamp(r.defaultPadding, 20, 160, 60),
     defaultPaddingPreset: pickEnum(r.defaultPaddingPreset, PADDING_PRESETS, "M"),
     defaultShadowPreset: pickEnum(r.defaultShadowPreset, SHADOW_PRESETS, "Deep"),

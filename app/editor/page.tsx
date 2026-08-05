@@ -24,12 +24,22 @@ import {
 import {
   BACKGROUNDS,
   PATTERNS,
+  PRESET_BACKGROUNDS,
   findBackground,
 } from "@/lib/backgrounds";
 import {
+  MAX_CUSTOM_BACKGROUNDS,
+  customBackgroundLabel,
+  encodeCustomBackground,
+  normalizeHex,
+  parseCustomBackground,
+} from "@/lib/custom-background";
+import {
   type BrandKit,
   type BadgePosition,
+  DEFAULT_BRAND_KIT,
   loadBrandKit,
+  saveBrandKit,
 } from "@/lib/brand-kit";
 import { useNotify } from "@/components/notify";
 
@@ -161,6 +171,15 @@ function EditorContent() {
   const [isExporting, setIsExporting] = useState(false);
   const [urlText, setUrlText] = useState("postabl.xyz/editor");
   const [showAllBackgrounds, setShowAllBackgrounds] = useState(false);
+  // Custom colour editor (Pro). The draft lives here rather than in bgId so
+  // a half-typed hex doesn't blank the canvas; only complete, parseable
+  // drafts get applied.
+  const [customOpen, setCustomOpen] = useState(false);
+  const [customMode, setCustomMode] = useState<"solid" | "linear">("linear");
+  const [customFrom, setCustomFrom] = useState("#fce4b6");
+  const [customTo, setCustomTo] = useState("#d98a7a");
+  const [customAngle, setCustomAngle] = useState(135);
+  const [savingPalette, setSavingPalette] = useState(false);
   const [me, setMe] = useState<MeUser>(null);
   const [meLoading, setMeLoading] = useState(true);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -594,6 +613,103 @@ function EditorContent() {
     }
     // Full-page nav — let LS's hosted checkout own the tab.
     window.location.href = url;
+  }
+
+  // The draft as an encoded id, or null while a hex field is mid-edit.
+  const customDraftId = (() => {
+    const from = normalizeHex(customFrom);
+    if (!from) return null;
+    if (customMode === "solid") {
+      return encodeCustomBackground({ kind: "solid", from });
+    }
+    const to = normalizeHex(customTo);
+    if (!to) return null;
+    return encodeCustomBackground({
+      kind: "linear",
+      angle: customAngle,
+      from,
+      to,
+    });
+  })();
+
+  // Live-apply while the editor is open, so the canvas tracks the colour
+  // pickers instead of making people commit blind.
+  useEffect(() => {
+    if (!customOpen || !customDraftId) return;
+    setBgId(customDraftId);
+  }, [customOpen, customDraftId]);
+
+  const savedCustom = brandKit?.customBackgrounds ?? [];
+  const paletteFull = savedCustom.length >= MAX_CUSTOM_BACKGROUNDS;
+  const draftAlreadySaved =
+    customDraftId !== null && savedCustom.includes(customDraftId);
+
+  // Same gate the Pattern swatches use: anon users get the sign-in confirm
+  // (with their work stashed), free signed-in users get the checkout confirm.
+  async function handleCustomTileClick() {
+    if (!isPro) {
+      if (!me) {
+        void requireSignedIn({
+          title: "Sign in to use custom colours",
+          description:
+            "Custom backgrounds are part of Pro. Sign in with Google first — we'll keep your work — then unlock Pro for $9.99/year.",
+        });
+        return;
+      }
+      void confirmAndUpgrade("Custom colours");
+      return;
+    }
+    // Seed the draft from the current background when it's already custom,
+    // so reopening the editor continues where they left off.
+    const current = parseCustomBackground(bgId);
+    if (current) {
+      setCustomMode(current.kind);
+      setCustomFrom(`#${current.from}`);
+      if (current.kind === "linear") {
+        setCustomTo(`#${current.to}`);
+        setCustomAngle(current.angle);
+      }
+    }
+    setCustomOpen((v) => !v);
+  }
+
+  async function persistPalette(next: string[]) {
+    // brandKit can still be null right after sign-in if the fetch failed;
+    // fall back to defaults so a save never silently drops the rest of
+    // the kit.
+    const base = brandKit ?? DEFAULT_BRAND_KIT;
+    setSavingPalette(true);
+    try {
+      const saved = await saveBrandKit({ ...base, customBackgrounds: next });
+      if (saved) setBrandKit(saved);
+      return true;
+    } catch (err) {
+      notify.toast(
+        err instanceof Error ? err.message : "Couldn't save your palette.",
+        { tone: "error" }
+      );
+      return false;
+    } finally {
+      setSavingPalette(false);
+    }
+  }
+
+  async function handleSaveCustomColour() {
+    if (!customDraftId || draftAlreadySaved) return;
+    if (paletteFull) {
+      notify.toast(
+        `Your palette holds ${MAX_CUSTOM_BACKGROUNDS} colours — remove one to add another.`,
+        { tone: "error" }
+      );
+      return;
+    }
+    const ok = await persistPalette([...savedCustom, customDraftId]);
+    if (ok) notify.toast("Saved to your palette.", { tone: "success", duration: 2000 });
+  }
+
+  async function handleRemoveCustomColour(id: string) {
+    const ok = await persistPalette(savedCustom.filter((c) => c !== id));
+    if (ok) notify.toast("Removed from your palette.", { tone: "success", duration: 2000 });
   }
 
   // Confirm-before-redirect for clicks on Pro-gated features. The
@@ -1088,12 +1204,17 @@ function EditorContent() {
               // active bg is outside that window, swap it in for the last
               // visible slot so the selection stays on screen *and* the
               // "Show less" toggle still actually collapses the grid.
-              const activeIdx = BACKGROUNDS.findIndex((b) => b.id === bgId);
+              const activeIdx = PRESET_BACKGROUNDS.findIndex(
+                (b) => b.id === bgId
+              );
               const visible = showAllBackgrounds
-                ? BACKGROUNDS
+                ? PRESET_BACKGROUNDS
                 : activeIdx >= 9
-                  ? [...BACKGROUNDS.slice(0, 8), BACKGROUNDS[activeIdx]]
-                  : BACKGROUNDS.slice(0, 9);
+                  ? [
+                      ...PRESET_BACKGROUNDS.slice(0, 8),
+                      PRESET_BACKGROUNDS[activeIdx],
+                    ]
+                  : PRESET_BACKGROUNDS.slice(0, 9);
               return visible.map((b) => (
                 <div
                   key={b.id}
@@ -1112,7 +1233,7 @@ function EditorContent() {
               ));
             })()}
           </div>
-          {BACKGROUNDS.length > 9 && (
+          {PRESET_BACKGROUNDS.length > 9 && (
             <button
               type="button"
               onClick={() => setShowAllBackgrounds((v) => !v)}
@@ -1120,9 +1241,179 @@ function EditorContent() {
             >
               {showAllBackgrounds
                 ? "Show less ↑"
-                : `Show ${BACKGROUNDS.length - 9} more ↓`}
+                : `Show ${PRESET_BACKGROUNDS.length - 9} more ↓`}
             </button>
           )}
+
+          {/* YOUR COLOURS — saved palette + the custom editor launcher.
+              Sits outside the preset grid so it stays visible when the
+              grid is collapsed; the presets are a library, this is the
+              user's own shelf. */}
+          <div className="mt-5 border-t border-line pt-5">
+            <div className="mb-3.5 flex items-center justify-between font-mono text-[10px] uppercase tracking-wider text-ink-faint">
+              <span>Your colours</span>
+              <span
+                className={`rounded-full px-1.5 py-0.5 text-[9px] ${
+                  isPro ? "bg-accent/10 text-accent" : "bg-bg-alt"
+                }`}
+              >
+                {isPro ? "UNLOCKED" : "Pro"}
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {savedCustom.map((id) => {
+                const parsed = parseCustomBackground(id);
+                if (!parsed) return null;
+                const active = id === bgId;
+                return (
+                  <div
+                    key={id}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Custom colour ${customBackgroundLabel(parsed)}`}
+                    title={customBackgroundLabel(parsed)}
+                    onClick={() => setBgId(id)}
+                    className={`${presetClasses} group ${
+                      active ? "!border-ink" : ""
+                    }`}
+                    style={findBackground(id).style}
+                  >
+                    <PresetDot active={active} />
+                    <button
+                      type="button"
+                      aria-label="Remove from palette"
+                      title="Remove from palette"
+                      disabled={savingPalette}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void handleRemoveCustomColour(id);
+                      }}
+                      className="absolute bottom-0.5 left-0.5 hidden h-4 w-4 items-center justify-center rounded-full bg-ink/80 text-[10px] leading-none text-white group-hover:flex disabled:opacity-50"
+                    >
+                      ×
+                    </button>
+                  </div>
+                );
+              })}
+              {/* Launcher — the old dead "Custom" tile, now doing something. */}
+              <button
+                type="button"
+                onClick={handleCustomTileClick}
+                aria-expanded={customOpen}
+                title={isPro ? "Custom colour" : "Custom colours — Pro only"}
+                className={`${presetClasses} flex items-center justify-center border-dashed !border-line-strong bg-bg-alt text-lg text-ink-faint hover:text-ink ${
+                  customOpen ? "!border-ink !border-solid text-ink" : ""
+                }`}
+              >
+                {customOpen ? "−" : "+"}
+              </button>
+            </div>
+
+            {customOpen && isPro && (
+              <div className="mt-3 rounded-lg border border-line bg-bg-alt p-3">
+                <div className="mb-3 grid grid-cols-2 gap-1.5">
+                  {(["solid", "linear"] as const).map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setCustomMode(m)}
+                      aria-pressed={customMode === m}
+                      className={`rounded-md px-2 py-1.5 font-mono text-[10px] uppercase tracking-wider transition-colors ${
+                        customMode === m
+                          ? "bg-ink text-bg"
+                          : "bg-bg text-ink-soft hover:text-ink"
+                      }`}
+                    >
+                      {m === "solid" ? "Solid" : "Gradient"}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="flex flex-1 items-center gap-2 rounded-md border border-line bg-bg px-2 py-1.5">
+                    <span className="sr-only">
+                      {customMode === "solid" ? "Colour" : "From colour"}
+                    </span>
+                    <input
+                      type="color"
+                      value={normalizeHex(customFrom) ? customFrom : "#000000"}
+                      onChange={(e) => setCustomFrom(e.target.value)}
+                      className="h-5 w-5 cursor-pointer rounded border-0 bg-transparent p-0"
+                    />
+                    <input
+                      type="text"
+                      value={customFrom}
+                      onChange={(e) => setCustomFrom(e.target.value)}
+                      spellCheck={false}
+                      aria-invalid={!normalizeHex(customFrom)}
+                      className="w-full min-w-0 bg-transparent font-mono text-[11px] uppercase text-ink outline-none"
+                    />
+                  </label>
+                  {customMode === "linear" && (
+                    <label className="flex flex-1 items-center gap-2 rounded-md border border-line bg-bg px-2 py-1.5">
+                      <span className="sr-only">To colour</span>
+                      <input
+                        type="color"
+                        value={normalizeHex(customTo) ? customTo : "#000000"}
+                        onChange={(e) => setCustomTo(e.target.value)}
+                        className="h-5 w-5 cursor-pointer rounded border-0 bg-transparent p-0"
+                      />
+                      <input
+                        type="text"
+                        value={customTo}
+                        onChange={(e) => setCustomTo(e.target.value)}
+                        spellCheck={false}
+                        aria-invalid={!normalizeHex(customTo)}
+                        className="w-full min-w-0 bg-transparent font-mono text-[11px] uppercase text-ink outline-none"
+                      />
+                    </label>
+                  )}
+                </div>
+
+                {customMode === "linear" && (
+                  <div className="mt-3">
+                    <div className="mb-1.5 flex items-center justify-between font-mono text-[10px] uppercase tracking-wider text-ink-faint">
+                      <span>Angle</span>
+                      <span className="text-ink">{customAngle}°</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={360}
+                      step={5}
+                      value={customAngle}
+                      onChange={(e) => setCustomAngle(Number(e.target.value))}
+                      aria-label="Gradient angle"
+                      className="slider"
+                    />
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => void handleSaveCustomColour()}
+                  disabled={
+                    !customDraftId ||
+                    draftAlreadySaved ||
+                    savingPalette ||
+                    paletteFull
+                  }
+                  className="mt-3 w-full rounded-md border border-line bg-bg px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-ink-soft transition-all hover:border-ink hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {savingPalette
+                    ? "Saving…"
+                    : draftAlreadySaved
+                      ? "In your palette ✓"
+                      : paletteFull
+                        ? "Palette full"
+                        : "Save to palette ↓"}
+                </button>
+                <p className="mt-2 text-center font-mono text-[9px] leading-relaxed text-ink-faint">
+                  Saved colours sync to your brand kit
+                </p>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="mb-5 border-b border-line px-5 pb-5">

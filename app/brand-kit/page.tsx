@@ -16,9 +16,14 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  BRAND_KIT_BACKGROUNDS,
+  PRESET_BACKGROUNDS,
   findBackground,
 } from "@/lib/backgrounds";
+import {
+  MAX_CUSTOM_BACKGROUNDS,
+  customBackgroundLabel,
+  parseCustomBackground,
+} from "@/lib/custom-background";
 import {
   type BrandKit,
   type BadgePosition,
@@ -585,29 +590,104 @@ export default function BrandKitPage() {
                 title="Default background"
                 description="What loads when you open a fresh editor."
               />
-              <div className="mt-5 grid grid-cols-6 gap-2 md:grid-cols-8">
-                {BRAND_KIT_BACKGROUNDS.map((b) => (
-                  <button
-                    key={b.id}
-                    type="button"
-                    onClick={() =>
-                      setKit((k) => ({ ...k, defaultBgId: b.id }))
-                    }
-                    aria-label={b.label}
-                    aria-pressed={kit.defaultBgId === b.id}
-                    title={b.label}
-                    className={`relative aspect-square overflow-hidden rounded-lg border-2 p-0 transition-all hover:scale-105 ${
-                      kit.defaultBgId === b.id
-                        ? "border-ink"
-                        : "border-transparent"
-                    }`}
-                    style={b.style}
-                  >
-                    {kit.defaultBgId === b.id && (
-                      <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-accent shadow-[0_0_0_2px_white]" />
-                    )}
-                  </button>
-                ))}
+              {/* The user's own colours first — they're the point of the
+                  feature, and there are at most a handful, so burying them
+                  under 35 presets would be backwards. Created in the editor;
+                  this page is where you prune them and pick a default. */}
+              {kit.customBackgrounds.length > 0 && (
+                <div className="mt-5">
+                  <div className="mb-2.5 font-mono text-[10px] uppercase tracking-wider text-ink-faint">
+                    Your colours
+                  </div>
+                  <div className="grid grid-cols-6 gap-2 md:grid-cols-8">
+                    {kit.customBackgrounds.map((id) => {
+                      const parsed = parseCustomBackground(id);
+                      if (!parsed) return null;
+                      const selected = kit.defaultBgId === id;
+                      return (
+                        <div
+                          key={id}
+                          className={`group relative aspect-square overflow-hidden rounded-lg border-2 transition-all hover:scale-105 ${
+                            selected ? "border-ink" : "border-transparent"
+                          }`}
+                          style={findBackground(id).style}
+                        >
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setKit((k) => ({ ...k, defaultBgId: id }))
+                            }
+                            aria-label={`Default background: ${customBackgroundLabel(parsed)}`}
+                            aria-pressed={selected}
+                            title={customBackgroundLabel(parsed)}
+                            className="absolute inset-0 h-full w-full"
+                          />
+                          {selected && (
+                            <span className="pointer-events-none absolute right-1 top-1 h-2 w-2 rounded-full bg-accent shadow-[0_0_0_2px_white]" />
+                          )}
+                          <button
+                            type="button"
+                            aria-label={`Remove ${customBackgroundLabel(parsed)} from palette`}
+                            title="Remove from palette"
+                            onClick={() =>
+                              setKit((k) => ({
+                                ...k,
+                                customBackgrounds: k.customBackgrounds.filter(
+                                  (c) => c !== id
+                                ),
+                                // Don't leave the default pointing at a
+                                // colour that's no longer in the palette.
+                                defaultBgId:
+                                  k.defaultBgId === id
+                                    ? DEFAULT_BRAND_KIT.defaultBgId
+                                    : k.defaultBgId,
+                              }))
+                            }
+                            className="absolute bottom-0.5 left-0.5 hidden h-4 w-4 items-center justify-center rounded-full bg-ink/80 text-[10px] leading-none text-white group-hover:flex"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="mt-2.5 font-mono text-[10px] text-ink-faint">
+                    Add colours from the editor&apos;s background panel — up to{" "}
+                    {MAX_CUSTOM_BACKGROUNDS}.
+                  </p>
+                </div>
+              )}
+
+              <div className="mt-5">
+                {kit.customBackgrounds.length > 0 && (
+                  <div className="mb-2.5 font-mono text-[10px] uppercase tracking-wider text-ink-faint">
+                    Presets
+                  </div>
+                )}
+                <div className="grid grid-cols-6 gap-2 md:grid-cols-8">
+                  {PRESET_BACKGROUNDS.map((b) => (
+                    <button
+                      key={b.id}
+                      type="button"
+                      onClick={() =>
+                        setKit((k) => ({ ...k, defaultBgId: b.id }))
+                      }
+                      aria-label={b.label}
+                      aria-pressed={kit.defaultBgId === b.id}
+                      title={b.label}
+                      className={`relative aspect-square overflow-hidden rounded-lg border-2 p-0 transition-all hover:scale-105 ${
+                        kit.defaultBgId === b.id
+                          ? "border-ink"
+                          : "border-transparent"
+                      }`}
+                      style={b.style}
+                    >
+                      {kit.defaultBgId === b.id && (
+                        <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-accent shadow-[0_0_0_2px_white]" />
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
             </section>
 

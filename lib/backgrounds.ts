@@ -3,6 +3,11 @@
 // Keep canonical here so the two stay in sync.
 
 import type { CSSProperties } from "react";
+import {
+  customBackgroundCss,
+  customBackgroundLabel,
+  parseCustomBackground,
+} from "@/lib/custom-background";
 
 export type Background = {
   id: string;
@@ -154,16 +159,35 @@ export const PATTERNS: Background[] = [
   },
 ];
 
-// Backgrounds that are valid as a "default" choice in Brand Kit — i.e.
-// everything except the placeholder "Custom" tile.
-export const BRAND_KIT_BACKGROUNDS: Background[] = BACKGROUNDS.filter(
-  (b) => b.id !== "dashed"
+// The editor's "Custom" tile. Kept in BACKGROUNDS so any bgId already
+// persisted as "dashed" still resolves to something, but the pickers pull
+// it out and render it as the launcher for the colour editor rather than
+// as a selectable swatch.
+export const CUSTOM_TILE_ID = "dashed";
+
+// The real presets — everything except that launcher. This is what both
+// pickers actually render.
+export const PRESET_BACKGROUNDS: Background[] = BACKGROUNDS.filter(
+  (b) => b.id !== CUSTOM_TILE_ID
 );
 
-// Find a background (regular or pattern) by id, falling back to the
-// first regular background. Used by the editor when resolving the
-// stored bgId after a brand kit auto-apply.
+// Find a background by id, falling back to the first preset. Used by the
+// editor when resolving the stored bgId after a brand kit auto-apply.
+//
+// `custom:*` ids carry their own colours (see lib/custom-background.ts) and
+// are synthesised on the fly, so a Pro user's own palette resolves through
+// exactly the same call as the built-in presets — which is why the editor
+// canvas, the export, the Brand Kit preview and the landing page all pick
+// custom backgrounds up without any of them knowing this feature exists.
 export function findBackground(id: string): Background {
+  const custom = parseCustomBackground(id);
+  if (custom) {
+    return {
+      id,
+      label: customBackgroundLabel(custom),
+      style: { background: customBackgroundCss(custom) },
+    };
+  }
   return (
     [...BACKGROUNDS, ...PATTERNS].find((b) => b.id === id) ?? BACKGROUNDS[0]
   );

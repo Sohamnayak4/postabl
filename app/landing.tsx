@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { findBackground } from "@/lib/backgrounds";
+import { PRESET_BACKGROUNDS, findBackground } from "@/lib/backgrounds";
 import type { BadgePosition, BadgeStyle } from "@/lib/brand-kit";
 
 // The "raw capture" used by both the before/after demo and the Brand Kit
@@ -595,7 +595,7 @@ export default function LandingPage() {
               {[
                 "2 downloads per day",
                 "Medium quality exports",
-                "All backgrounds & presets",
+                `${PRESET_BACKGROUNDS.length} backgrounds & presets`,
                 "No watermark",
               ].map((item) => (
                 <li
@@ -636,8 +636,9 @@ export default function LandingPage() {
               {[
                 "Unlimited downloads",
                 "Maximum quality (4× retina)",
-                "All backgrounds & presets",
-                "Brand kit: your handle & defaults on every export",
+                `All ${PRESET_BACKGROUNDS.length} backgrounds, plus patterns`,
+                "Custom colours: your own solids & gradients",
+                "Brand kit: your handle, palette & defaults on every export",
                 "Priority export speeds",
                 "Early access to new features",
               ].map((item) => (
